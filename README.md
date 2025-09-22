@@ -1,13 +1,13 @@
 # ChoiceAdvantageExtension
 Browser extension adding a few features to Choice Advantage *(hotel software I use daily at work)*.
 
-## ChoiceAdvantage Extensions
+### Extension features:
 
 - Escape key clicks "Back" link
 - Arrivals date navigation UI _(next/previous shortcuts)_
 - Highlights names from hard-coded Do Not Rent (DNR) list
 
-Installation
+## Installation
 
 - Download or clone this repository.
 - Open Chrome and go to chrome://extensions/.
