@@ -20,6 +20,11 @@
       "matches": ["https://*.choiceadvantage.com/*/ViewArrivalsList.init", "https://*.choiceadvantage.com/*/ViewArrivalsList.do"],
       "js": ["highlightDnrs.js"],
       "run_at": "document_idle"
+    },
+	{
+      "matches": ["https://*.choiceadvantage.com/*"],
+      "js": ["shortcuts.js"],
+      "run_at": "document_idle"
     }
 	
 	
