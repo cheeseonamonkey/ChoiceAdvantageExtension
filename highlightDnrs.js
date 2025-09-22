@@ -1,4 +1,4 @@
-const dnrList = ["Doe, John", "Huso, Alexander", "POTTER, HARRY" ]  // add your own names here as: First, Last
+const dnrList = ["Doe, John", "cobain, kurt", "Huso, Alexander", "POTTER, HARRY" ]  // add your own names here as: First, Last
 
 
 function highlightDNRs() {
