@@ -3,7 +3,6 @@ const dnrList = ["Doe, John", "cobain, kurt", "Huso, Alexander", "POTTER, HARRY"
 
 
 
-
 function highlightDNRs() {
   const links = document.querySelectorAll('table a');
   
@@ -17,7 +16,7 @@ function highlightDNRs() {
         link.innerHTML = `
           
           <span style="text-decoration: underline #f44; text-decoration-thickness:1.5px;">
-		  <span class="hover_show" style="padding: 1px; text-shadow 1px 1px 1x rgba(11,11,11,0.37); padding: 1px; background-color: rgba(22,44,99, 0.85); margin-top: 0.2em; font-weight: bold; position: absolute; font-family: Roboto; font-size: 0.95em; color:#f44;"><i>Check DNR</i><br/></span>
+		  <span class="hover_show" style="padding: 1px; text-shadow 1px 1px 1x rgba(11,11,11,0.37); padding: 1.4px; background-color: rgba(22,44,99, 0.94); margin-top: 0.2em; font-weight: bold; position: absolute; font-family: Roboto; font-size: 0.97em; color:#f44;"><i>Check DNR</i><br/></span>
 		  ${link.innerText}
 		  </span>
         `;
