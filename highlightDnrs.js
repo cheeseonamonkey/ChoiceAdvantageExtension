@@ -2,6 +2,8 @@ const dnrList = ["Doe, John", "cobain, kurt", "Huso, Alexander", "POTTER, HARRY"
 
 
 
+
+
 function highlightDNRs() {
   const links = document.querySelectorAll('table a');
   
@@ -13,8 +15,8 @@ function highlightDNRs() {
 
       if (text.includes(last) && text.includes(first)) {
         link.innerHTML = `
-          <span class="hover_show" style="padding: 1px; text-shadow 1px 1px 1x rgba(11,11,11,0.35); padding: 1px; background-color: rgba(00,33,33, 0.08); font-weight: bold; line-height: 0.5; position: relative; top:6px; left:-2px; font-family: Roboto; font-size: 0.95em; color:#e33;"><i>Check DNR</i></span><br/>
-          <span style="text-decoration: underline red; text-decoration-thickness:1px;">${link.innerText}</span>
+          <span class="hover_show" style="padding: 1px; text-shadow 1px 1px 1x rgba(11,11,11,0.35); padding: 1px; background-color: rgba(00,33,33, 0.08); font-weight: bold; line-height: 0.5; position: relative; top:4px; left:-2px; font-family: Roboto; font-size: 0.95em; color:#f44;"><i>Check DNR</i></span><br/>
+          <span style="text-decoration: underline #f44; text-decoration-thickness:1.5px;">${link.innerText}</span>
         `;
       }
     });
