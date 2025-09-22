@@ -1,0 +1,27 @@
+ {
+  "manifest_version": 3,
+  "name": "ChoiceAdvantage extensions",
+  "version": "1.0",
+  "description": "Choice Advantage extensions:\n - Esc clicks Back\n - arrivals date navigation UI \n - Match hard-coded DNR list",
+  "permissions": ["scripting"],
+  "host_permissions": ["https://*.choiceadvantage.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://*.choiceadvantage.com/*"],
+      "js": ["escToBack.js"],
+      "run_at": "document_idle"
+    },
+	{
+      "matches": ["https://*.choiceadvantage.com/*/ViewArrivalsList.init", "https://*.choiceadvantage.com/*/ViewArrivalsList.do"],
+      "js": ["arrivalsDateUI.js"],
+      "run_at": "document_idle"
+    },
+	{
+      "matches": ["https://*.choiceadvantage.com/*/ViewArrivalsList.init", "https://*.choiceadvantage.com/*/ViewArrivalsList.do"],
+      "js": ["highlightDnrs.js"],
+      "run_at": "document_idle"
+    }
+	
+	
+  ]
+}
