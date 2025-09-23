@@ -22,5 +22,5 @@ Browser extension adding a few features to Choice Advantage *(hotel software I u
 - Click Load unpacked and select the folder containing the extension files.
 - The extension will load and activate on choiceadvantage.com pages.
 
-#### Configure DNR list
+### Configure DNR list
 The DNR list is currently hard-coded as a Javascript array. You may edit it before loading the extension.
