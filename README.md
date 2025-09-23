@@ -4,7 +4,7 @@ Browser extension adding a few features to Choice Advantage *(hotel software I u
 ### Extension features:
   - Shortcuts:
     - `Ctrl`+`Space`:
-       1. clicks `SAVE`/`SUBMIT` button, or
+       1. clicks `SAVE`/`SUBMIT`/`OK` button, or
        2. clicks `Check In` link
     - `Esc`:
        1. clicks `CANCEL` button, or
