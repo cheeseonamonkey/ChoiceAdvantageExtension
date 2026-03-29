@@ -10,6 +10,10 @@ const DEFAULTS = {
   guardHideGooglePopup: true,
   removeUnusedFontPreload: true,
   removeTelemetryHints: true,
+  hideNoncriticalImages: true,
+  animationMode: 'reduced',
+  enableNavPrefetch: true,
+  navPrefetchLabels: 'arrivals\ndepartures\nin-house',
   enableAbortRequests: false,
   abortRequestTimeoutMs: 2500,
   abortRequestPatterns: '',
@@ -37,6 +41,10 @@ const fields = {
   guardHideGooglePopup: document.getElementById('guardHideGooglePopup'),
   removeUnusedFontPreload: document.getElementById('removeUnusedFontPreload'),
   removeTelemetryHints: document.getElementById('removeTelemetryHints'),
+  hideNoncriticalImages: document.getElementById('hideNoncriticalImages'),
+  animationMode: document.getElementById('animationMode'),
+  enableNavPrefetch: document.getElementById('enableNavPrefetch'),
+  navPrefetchLabels: document.getElementById('navPrefetchLabels'),
   enableAbortRequests: document.getElementById('enableAbortRequests'),
   abortRequestTimeoutMs: document.getElementById('abortRequestTimeoutMs'),
   abortRequestPatterns: document.getElementById('abortRequestPatterns'),
@@ -64,6 +72,7 @@ function showSaved() {
 }
 
 function syncUI() {
+  if (fields.navPrefetchLabels) fields.navPrefetchLabels.disabled = !fields.enableNavPrefetch.checked;
   if (fields.abortRequestTimeoutMs) fields.abortRequestTimeoutMs.disabled = !fields.enableAbortRequests.checked;
   if (fields.abortRequestPatterns) fields.abortRequestPatterns.disabled = !fields.enableAbortRequests.checked;
   if (fields.dnrList && fields.enableDNR) fields.dnrList.disabled = !fields.enableDNR.checked;
@@ -87,6 +96,10 @@ function readForm() {
     guardHideGooglePopup: !!(fields.guardHideGooglePopup && fields.guardHideGooglePopup.checked),
     removeUnusedFontPreload: !!(fields.removeUnusedFontPreload && fields.removeUnusedFontPreload.checked),
     removeTelemetryHints: !!(fields.removeTelemetryHints && fields.removeTelemetryHints.checked),
+    hideNoncriticalImages: !!(fields.hideNoncriticalImages && fields.hideNoncriticalImages.checked),
+    animationMode: fields.animationMode ? fields.animationMode.value || DEFAULTS.animationMode : DEFAULTS.animationMode,
+    enableNavPrefetch: !!(fields.enableNavPrefetch && fields.enableNavPrefetch.checked),
+    navPrefetchLabels: fields.navPrefetchLabels ? fields.navPrefetchLabels.value || '' : '',
     enableAbortRequests: !!(fields.enableAbortRequests && fields.enableAbortRequests.checked),
     abortRequestTimeoutMs: fields.abortRequestTimeoutMs ? Math.max(1, parseInt(fields.abortRequestTimeoutMs.value || DEFAULTS.abortRequestTimeoutMs, 10) || DEFAULTS.abortRequestTimeoutMs) : DEFAULTS.abortRequestTimeoutMs,
     abortRequestPatterns: fields.abortRequestPatterns ? fields.abortRequestPatterns.value || '' : '',

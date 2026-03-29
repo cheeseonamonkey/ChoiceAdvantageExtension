@@ -161,7 +161,22 @@
       font: 500 12px/1.2 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       outline: none;
     }
+    .field select {
+      width: 100%;
+      height: 38px;
+      padding: 8px 10px;
+      border: 1px solid #d7ccb8;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #3f372f;
+      font: 500 12px/1.2 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      outline: none;
+    }
     .field input:focus {
+      border-color: #b8924f;
+      box-shadow: 0 0 0 3px rgba(184, 146, 79, 0.18);
+    }
+    .field select:focus {
       border-color: #b8924f;
       box-shadow: 0 0 0 3px rgba(184, 146, 79, 0.18);
     }
@@ -170,6 +185,11 @@
       cursor: pointer;
     }
     .field input:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      background: rgba(244, 239, 230, 0.9);
+    }
+    .field select:disabled {
       opacity: 0.55;
       cursor: not-allowed;
       background: rgba(244, 239, 230, 0.9);
@@ -183,35 +203,35 @@
     <h2>DNR Names</h2>
     <div class="info">One guest per line. Use <strong>LAST, FIRST</strong> or <strong>FIRST LAST</strong>.</div>
     <div class="toggles">
-      <label class="toggle">
+      <label class="toggle" title="Blocks the Skytouch Pendo script that can stall ChoiceADVANTAGE pages.">
         <input type="checkbox" id="enableBlockPendo" checked>
         <div><strong>Block Pendo</strong><span>Blocks the Skytouch Pendo script that can stall ChoiceADVANTAGE pages.</span></div>
       </label>
-      <label class="toggle">
+      <label class="toggle" title="Blocks mpulse and Techlab third-party measurement scripts on ChoiceADVANTAGE pages.">
         <input type="checkbox" id="enableBlockTelemetry" checked>
         <div><strong>Block telemetry</strong><span>Blocks mpulse and Techlab third-party measurement scripts on ChoiceADVANTAGE pages.</span></div>
       </label>
-      <label class="toggle">
+      <label class="toggle" title="Blocks the Akamai service-worker script path used by the page head installer.">
         <input type="checkbox" id="enableBlockAkamai" checked>
         <div><strong>Block Akamai SW</strong><span>Blocks the Akamai service-worker script path used by the page head installer.</span></div>
       </label>
-      <label class="toggle">
+      <label class="toggle" title="Underline and mark flagged guest names in tables.">
         <input type="checkbox" id="enableDNR" checked>
         <div><strong>DNR highlighting</strong><span>Underline matching guest names and show the hover reminder.</span></div>
       </label>
-      <label class="toggle">
+      <label class="toggle" title="Press Escape to trigger the page Back link outside form fields.">
         <input type="checkbox" id="enableEscapeKey" checked>
         <div><strong>Escape key back</strong><span>Press Escape to activate the page's Back link outside form fields.</span></div>
       </label>
-      <label class="toggle">
+      <label class="toggle" title="Expose the context-menu action for hiding a clicked table column.">
         <input type="checkbox" id="enableHideColumn" checked>
         <div><strong>Hide column menu</strong><span>Show the right-click Hide Column action for table headers.</span></div>
       </label>
-      <label class="toggle">
+      <label class="toggle" title="Expose the context-menu action for hiding a clicked table row.">
         <input type="checkbox" id="enableHideRow" checked>
         <div><strong>Hide row menu</strong><span>Show a right-click Hide Row action for the table row you click.</span></div>
       </label>
-      <label class="toggle">
+      <label class="toggle" title="Save and autofill usernames only. Passwords are never stored.">
         <input type="checkbox" id="enableRememberUsername" checked>
         <div><strong>Remember username</strong><span>Save and autofill usernames only. Passwords are never stored.</span></div>
       </label>
@@ -220,33 +240,41 @@
       <h3>Network</h3>
       <div class="info">One hostname per line. Comments after <strong>#</strong> are ignored, commas are allowed, and the first 50 custom hosts are used.</div>
       <div class="toggles">
-        <label class="toggle">
+        <label class="toggle" title="Replace the insecure mixed-content favicon URL with a safe inline icon.">
           <input type="checkbox" id="fixMixedContentFavicon" checked>
           <div><strong>Fix mixed favicon</strong><span>Replaces the broken insecure favicon URL with a safe inline icon.</span></div>
         </label>
-        <label class="toggle">
+        <label class="toggle" title="Hide the broken welcome image request that repeatedly 404s.">
           <input type="checkbox" id="suppressWelcomeImage404" checked>
           <div><strong>Suppress welcome image 404</strong><span>Hides the broken welcome image request that repeatedly 404s.</span></div>
         </label>
-        <label class="toggle">
+        <label class="toggle" title="Prevent duplicate ErrorMessageWriter loads that trigger redeclaration errors.">
           <input type="checkbox" id="dedupeErrorMessageWriter" checked>
           <div><strong>Dedupe ErrorMessageWriter</strong><span>Prevents duplicate ErrorMessageWriter script loads that trigger <code>backgroundErrorColor</code> redeclaration errors.</span></div>
         </label>
-        <label class="toggle">
+        <label class="toggle" title="Wrap the broken hideGooglePopUp handler so null nodes do not throw.">
           <input type="checkbox" id="guardHideGooglePopup" checked>
           <div><strong>Guard login popup handler</strong><span>Wraps the broken <code>hideGooglePopUp</code> handler so null nodes do not throw on sign-in pages.</span></div>
         </label>
-        <label class="toggle">
+        <label class="toggle" title="Remove the unused Sansation font preload that causes warnings.">
           <input type="checkbox" id="removeUnusedFontPreload" checked>
           <div><strong>Remove stale font preload</strong><span>Removes the unused Sansation preload that causes repeated preload warnings.</span></div>
         </label>
-        <label class="toggle">
+        <label class="toggle" title="Strip resource hints pointing at blocked telemetry hosts.">
           <input type="checkbox" id="removeTelemetryHints" checked>
           <div><strong>Remove telemetry hints</strong><span>Strips preconnect, dns-prefetch, preload, and prefetch hints that point at blocked telemetry hosts.</span></div>
         </label>
-        <label class="toggle">
+        <label class="toggle" title="Hide nonessential welcome and login images to reduce layout work.">
+          <input type="checkbox" id="hideNoncriticalImages" checked>
+          <div><strong>Hide welcome/login images</strong><span>Hides nonessential welcome and login images to reduce layout and image work on those pages.</span></div>
+        </label>
+        <label class="toggle" title="Apply a configurable timeout to matching page fetch and async XHR requests.">
           <input type="checkbox" id="enableAbortRequests">
           <div><strong>Abort matching requests</strong><span>Applies a configurable timeout to matching page <code>fetch</code> and async <code>XMLHttpRequest</code> URLs.</span></div>
+        </label>
+        <label class="toggle" title="Prefetch common navigation pages when you hover or focus their links.">
+          <input type="checkbox" id="enableNavPrefetch" checked>
+          <div><strong>Prefetch nav targets</strong><span>Prefetches common navigation pages like Arrivals, Departures, and In-House when you hover or focus those links.</span></div>
         </label>
       </div>
       <label class="list-label" for="blockedHosts">Custom blocked hosts</label>
@@ -256,17 +284,27 @@
           <label for="abortRequestTimeoutMs">Abort timeout (ms)</label>
           <input id="abortRequestTimeoutMs" type="number" min="1" step="100" value="2500">
         </div>
+        <div class="field">
+          <label for="animationMode" title="Reduce or disable CSS transitions and animations to cut rendering work.">Animation mode</label>
+          <select id="animationMode">
+            <option value="default">Default</option>
+            <option value="reduced" selected>Reduced (0.25x)</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
       </div>
-      <label class="list-label" for="abortRequestPatterns">Abort URL patterns</label>
+      <label class="list-label" for="abortRequestPatterns" title="One URL fragment per line or comma-separated. Matching fetch/XHR requests are aborted after the timeout.">Abort URL patterns</label>
       <textarea id="abortRequestPatterns" placeholder="/welcome/images/welcome-thank-you.jpg&#10;ErrorMessageWriter.js"></textarea>
+      <label class="list-label" for="navPrefetchLabels" title="One label per line or comma-separated. Matching link text will be prefetched on hover or focus.">Nav prefetch labels</label>
+      <textarea id="navPrefetchLabels" placeholder="arrivals&#10;departures&#10;in-house"></textarea>
     </div>
-    <label class="list-label" for="dnrList">DNR list</label>
+    <label class="list-label" for="dnrList" title="One guest per line. Use LAST, FIRST or FIRST LAST.">DNR list</label>
     <textarea id="dnrList" placeholder="Smith, John&#10;Doe, Jane"></textarea>
     <div class="section">
       <h3>Login</h3>
       <div class="fields">
         <div class="field">
-          <label for="rememberedUsername">Remembered username</label>
+          <label for="rememberedUsername" title="Saved automatically from login forms. Passwords are ignored.">Remembered username</label>
           <input id="rememberedUsername" type="text" placeholder="Saved automatically from login forms">
         </div>
       </div>
@@ -276,23 +314,23 @@
       <h3>Behavior</h3>
       <div class="fields">
         <div class="field">
-          <label for="dnrTooltipText">DNR hover text</label>
+          <label for="dnrTooltipText" title="Text shown in the hover reminder for flagged DNR names.">DNR hover text</label>
           <input id="dnrTooltipText" type="text" value="Check DNR!">
         </div>
         <div class="field">
-          <label for="dnrHighlightColor">DNR underline color</label>
+          <label for="dnrHighlightColor" title="Underline color for flagged DNR names.">DNR underline color</label>
           <input id="dnrHighlightColor" type="color" value="#dc3545">
         </div>
         <div class="field">
-          <label for="backLinkText">Back link text</label>
+          <label for="backLinkText" title="Exact text the Escape key handler clicks to go back.">Back link text</label>
           <input id="backLinkText" type="text" value="Back">
         </div>
         <div class="field">
-          <label for="hideColumnMenuText">Hide column menu label</label>
+          <label for="hideColumnMenuText" title="Context-menu label for hiding the clicked table column.">Hide column menu label</label>
           <input id="hideColumnMenuText" type="text" value="Hide Column">
         </div>
         <div class="field">
-          <label for="hideRowMenuText">Hide row menu label</label>
+          <label for="hideRowMenuText" title="Context-menu label for hiding the clicked row.">Hide row menu label</label>
           <input id="hideRowMenuText" type="text" value="Hide Row">
         </div>
       </div>

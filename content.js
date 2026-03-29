@@ -14,6 +14,10 @@
     guardHideGooglePopup: true,
     removeUnusedFontPreload: true,
     removeTelemetryHints: true,
+    hideNoncriticalImages: false,
+    animationMode: 'default',
+    enableNavPrefetch: true,
+    navPrefetchLabels: 'arrivals\ndepartures\nin-house',
     enableDNR: true,
     enableEscapeKey: true,
     enableHideColumn: true,
@@ -85,10 +89,11 @@
   const ERROR_WRITER = 'errormessagewriter.js';
   const STALE_PRELOAD = 'sansation-light-webfont.woff';
   const TELEMETRY_HINT_HOSTS = ['content.nps.skytouchnps.com', 's.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com'];
+  const NONCRITICAL_IMAGE_PATTERNS = ['/choicehotels/welcome/', '/choicehotels/sign_in', '/choicehotels/login'];
   const PAGE_CONFIG_EVENT = 'ca-enhanced-page-config';
   const PAGE_ACTION_EVENT = 'ca-enhanced-auto-action';
   const seenScripts = new Set();
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, googlePopupGuardTimer: 0, pageScriptInjected: false };
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, googlePopupGuardTimer: 0, pageScriptInjected: false, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [] };
 
   const safe = (label, fn) => {
     try {
@@ -137,6 +142,7 @@
 
   const cleanText = value => (value || '').trim();
   const settingText = (key, fallback) => cleanText(state.settings[key]) || fallback;
+  const parseSimpleList = value => String(value || '').split('\n').flatMap(line => line.split(',')).map(part => cleanText(part).toLowerCase()).filter(Boolean);
   const normalizeSrc = value => {
     try {
       return new URL(value, location.href).href;
@@ -149,7 +155,8 @@
   const isErrorWriter = value => normalizeSrc(value).toLowerCase().includes(ERROR_WRITER);
   const isStalePreload = value => normalizeSrc(value).toLowerCase().includes(STALE_PRELOAD);
   const isTelemetryHint = value => TELEMETRY_HINT_HOSTS.some(host => normalizeSrc(value).includes(`://${host}`));
-  const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload || state.settings.removeTelemetryHints;
+  const isNoncriticalImage = value => NONCRITICAL_IMAGE_PATTERNS.some(pattern => normalizeSrc(value).includes(pattern));
+  const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload || state.settings.removeTelemetryHints || state.settings.hideNoncriticalImages;
 
   function injectPageScript() {
     if (state.pageScriptInjected || !document.documentElement) return;
@@ -181,8 +188,35 @@
       node.removeAttribute('src');
       node.style.display = 'none';
     }
+    if (state.settings.hideNoncriticalImages && node.matches('img[src]') && isNoncriticalImage(node.src)) {
+      node.loading = 'lazy';
+      node.decoding = 'async';
+      node.style.visibility = 'hidden';
+      node.style.maxHeight = '1px';
+      node.style.maxWidth = '1px';
+      node.style.opacity = '0';
+    }
     if (node.matches('script[src]')) sanitizeScript(node);
     node.querySelectorAll?.('link[rel*="icon"][href], link[rel="preload"][href], img[src], script[src]').forEach(child => sanitizeNode(child));
+  }
+
+  function syncAnimationMode() {
+    if (!document.documentElement) return;
+    if (!state.animationStyle) {
+      state.animationStyle = document.createElement('style');
+      state.animationStyle.dataset.caEnhanced = 'animation-mode';
+      document.documentElement.appendChild(state.animationStyle);
+    }
+    const mode = state.settings.animationMode;
+    if (mode === 'off') {
+      state.animationStyle.textContent = '*,:before,:after{animation:none !important;transition:none !important;scroll-behavior:auto !important;}';
+      return;
+    }
+    if (mode === 'reduced') {
+      state.animationStyle.textContent = '*,:before,:after{animation-duration:0.25s !important;animation-delay:0s !important;transition-duration:0.25s !important;transition-delay:0s !important;scroll-behavior:auto !important;}';
+      return;
+    }
+    state.animationStyle.textContent = '';
   }
 
   function sanitizeScript(node) {
@@ -239,10 +273,13 @@
       state.headObserver = null;
     };
     if (document.readyState === 'complete') state.headObserverStopTimer = window.setTimeout(stop, 3000);
-    else window.addEventListener('load', () => {
-      clearTimeout(state.headObserverStopTimer);
-      state.headObserverStopTimer = window.setTimeout(stop, 3000);
-    }, { once: true });
+    else if (!state.headObserverLoadBound) {
+      state.headObserverLoadBound = true;
+      window.addEventListener('load', () => {
+        clearTimeout(state.headObserverStopTimer);
+        state.headObserverStopTimer = window.setTimeout(stop, 3000);
+      }, { once: true });
+    }
   }
 
   function initHeadFixes() {
@@ -348,7 +385,9 @@
   function applySettings(nextSettings) {
     state.settings = { ...state.settings, ...nextSettings };
     state.dnrRules = compileRules(state.settings.dnrList || '');
+    state.navPrefetchLabels = parseSimpleList(state.settings.navPrefetchLabels || '');
     syncPageConfig();
+    syncAnimationMode();
     initHeadFixes();
     if (state.tooltip) state.tooltip.textContent = settingText('dnrTooltipText', DEFAULTS.dnrTooltipText);
     safe('DNR highlighting failed', refreshDNRLinks);
@@ -496,6 +535,35 @@
     }));
   }
 
+  function prefetchNavLink(link) {
+    const href = link && link.href;
+    if (!state.settings.enableNavPrefetch || !href || state.prefetchedHrefs.has(href)) return;
+    try {
+      const url = new URL(href, location.href);
+      if (url.origin !== location.origin || url.protocol !== 'https:') return;
+      const rel = document.createElement('link');
+      rel.rel = 'prefetch';
+      rel.as = 'document';
+      rel.href = url.href;
+      (document.head || document.documentElement).appendChild(rel);
+      state.prefetchedHrefs.add(url.href);
+    } catch (e) {
+      console.warn(`${LOG} Nav prefetch failed:`, e);
+    }
+  }
+
+  function initNavPrefetch() {
+    const maybePrefetch = target => safe('Nav prefetch failed', () => {
+      if (!state.settings.enableNavPrefetch || !state.navPrefetchLabels.length) return;
+      const link = target && target.closest && target.closest('a[href]');
+      const label = cleanText(link && link.textContent).toLowerCase();
+      if (!link || !label || !state.navPrefetchLabels.some(value => label.includes(value))) return;
+      prefetchNavLink(link);
+    });
+    document.addEventListener('mouseover', e => maybePrefetch(e.target), true);
+    document.addEventListener('focusin', e => maybePrefetch(e.target), true);
+  }
+
   function initStorageSync() {
     chrome.storage.onChanged.addListener((changes, area) => safe('Settings sync failed', () => {
       if (area !== 'sync') return;
@@ -509,11 +577,13 @@
     safe('Escape key init failed', initEscapeKey);
     safe('Table tracking init failed', initTableTracking);
     safe('Remember username init failed', initRememberUsername);
+    safe('Nav prefetch init failed', initNavPrefetch);
     safe('Message listener init failed', initMessages);
     safe('Storage sync init failed', initStorageSync);
   }
 
   injectPageScript();
+  syncAnimationMode();
   initHeadFixes();
 
   chrome.storage.sync.get(DEFAULTS, items => safe('Init failed', () => {

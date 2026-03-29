@@ -9,6 +9,9 @@ Minimal ChoiceADVANTAGE productivity and performance extension.
 - Block extra telemetry vendors like mPulse and Techlab by default
 - Block the Akamai service-worker script path separately
 - Strip wasted preconnect/prefetch/preload hints that target blocked telemetry hosts
+- Prefetch likely next navigation pages like Arrivals, Departures, and In-House on hover/focus
+- Optionally hide noncritical welcome/login images
+- Provide animation modes for default behavior, reduced durations, or fully disabled transitions/animations
 - Add custom third-party hostnames to block per page load
 - Apply configurable abort timeouts to matching page `fetch` and async `XMLHttpRequest` URLs
 - Fix recurring page noise such as mixed-content favicon requests, broken welcome image 404s, duplicate error-writer loads, login popup null errors, and stale font preloads
@@ -47,9 +50,17 @@ Minimal ChoiceADVANTAGE productivity and performance extension.
 - Leave `Block Akamai SW` enabled unless you find a page that actually depends on the Akamai service-worker installer path
 - Add one custom hostname per line under `Custom blocked hosts`
 - Comments after `#` are ignored, commas are allowed, and the first 50 custom hosts are used
-- The popup also has individual toggles for favicon repair, welcome image suppression, ErrorMessageWriter dedupe, login popup guarding, stale font preload removal, and telemetry-hint cleanup
+- The popup also has individual toggles for favicon repair, welcome image suppression, ErrorMessageWriter dedupe, login popup guarding, stale font preload removal, telemetry-hint cleanup, noncritical image hiding, and nav prefetch
+- `Animation mode` supports `Default`, `Reduced (0.25x)`, and `Off`
 - `Abort matching requests` is off by default and only affects URL patterns you explicitly list
 - Request aborts apply to page `fetch` and async `XMLHttpRequest`, not generic browser-level script/network timeouts
+- `Prefetch nav targets` is limited to same-origin HTTPS links whose visible text matches your configured label list
+- `Hide welcome/login images` and `Animation mode` default to the more aggressive performance settings
+
+## Automation
+
+- `CI` validates JS syntax and the MV3 manifest, then uploads a zip artifact on push and pull requests
+- `Release` builds the extension zip and attaches it to GitHub releases created from tags like `v4.1.0`
 
 **DNR Names:**
 - Click extension icon in toolbar
