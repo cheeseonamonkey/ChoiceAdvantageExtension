@@ -290,7 +290,7 @@
       state.headObserver = new MutationObserver(mutations => mutations.forEach(({ addedNodes }) => addedNodes.forEach(node => sanitizeNode(node))));
       state.headObserver.observe(document.documentElement, { childList: true, subtree: true });
       scheduleHeadObserverStop();
-    }
+    } else state.headObserver = null;
     if (state.settings.guardHideGooglePopup) scheduleGooglePopupGuard();
     else stopGooglePopupGuard();
   }

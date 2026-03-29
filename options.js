@@ -60,6 +60,16 @@ const fields = {
   hideColumnMenuText: document.getElementById('hideColumnMenuText'),
   hideRowMenuText: document.getElementById('hideRowMenuText')
 };
+const statusFields = {
+  enableAbortRequests: document.getElementById('enableAbortRequestsStatus'),
+  enableNavPrefetch: document.getElementById('enableNavPrefetchStatus'),
+  blockedHosts: document.getElementById('blockedHostsStatus'),
+  abortRequestTimeoutMs: document.getElementById('abortRequestTimeoutMsStatus'),
+  abortRequestPatterns: document.getElementById('abortRequestPatternsStatus'),
+  navPrefetchLabels: document.getElementById('navPrefetchLabelsStatus'),
+  dnrList: document.getElementById('dnrListStatus')
+};
+const RESERVED_HOSTS = new Set(['choiceadvantage.com', 'remoteaccess.choiceadvantage.com', 'content.nps.skytouchnps.com', 's.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com']);
 const saved = document.getElementById('saved');
 let saveTimer = 0;
 let savedTimer = 0;
@@ -69,6 +79,69 @@ function showSaved() {
   clearTimeout(savedTimer);
   saved.classList.add('show');
   savedTimer = setTimeout(() => saved.classList.remove('show'), 1000);
+}
+
+function splitLoose(value) {
+  return String(value || '').split('\n').flatMap(line => line.split(',')).map(part => part.replace(/#.*/, '').trim()).filter(Boolean);
+}
+
+function normalizeHost(host) {
+  return String(host || '').trim().replace(/#.*/, '').replace(/[,\s]+$/, '').toLowerCase().replace(/^\*\./, '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+}
+
+function setStatus(field, message) {
+  const status = statusFields[field];
+  if (!status) return;
+  if (!message) {
+    status.hidden = true;
+    status.classList.remove('show');
+    status.title = '';
+    return;
+  }
+  status.hidden = false;
+  status.classList.add('show');
+  status.title = message;
+}
+
+function refreshStatuses() {
+  const blocked = splitLoose(fields.blockedHosts && fields.blockedHosts.value);
+  const seenHosts = new Set();
+  let blockedIssues = 0;
+  blocked.forEach(entry => {
+    const host = normalizeHost(entry);
+    if (!host || RESERVED_HOSTS.has(host) || seenHosts.has(host)) blockedIssues += 1;
+    else seenHosts.add(host);
+  });
+  setStatus('blockedHosts', blockedIssues ? 'Some entries are ignored, duplicated, or reserved.' : '');
+
+  const timeout = Number(fields.abortRequestTimeoutMs && fields.abortRequestTimeoutMs.value);
+  setStatus('abortRequestTimeoutMs', !Number.isInteger(timeout) || timeout < 1 ? 'Must be a positive whole number.' : '');
+
+  const abortPatterns = splitLoose(fields.abortRequestPatterns && fields.abortRequestPatterns.value);
+  const validAbortPatterns = abortPatterns.filter(part => part.length >= 3);
+  setStatus('abortRequestPatterns', abortPatterns.length && validAbortPatterns.length !== abortPatterns.length ? 'Entries shorter than 3 characters are ignored.' : '');
+
+  const navLabels = splitLoose(fields.navPrefetchLabels && fields.navPrefetchLabels.value);
+  const validNavLabels = navLabels.filter(part => part.length >= 3);
+  setStatus('navPrefetchLabels', navLabels.length && validNavLabels.length !== navLabels.length ? 'Entries shorter than 3 characters are ignored.' : '');
+
+  const dnrLines = String(fields.dnrList && fields.dnrList.value || '').split('\n').map(line => line.trim()).filter(Boolean);
+  const validDnrLines = dnrLines.filter(line => {
+    const parts = line.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+    return parts.length >= 2;
+  });
+  setStatus('dnrList', dnrLines.length && validDnrLines.length !== dnrLines.length ? 'Some lines need both first and last names.' : '');
+
+  setStatus('enableAbortRequests',
+    fields.enableAbortRequests && fields.enableAbortRequests.checked
+      ? (!validAbortPatterns.length ? 'Add at least one URL pattern.' : '')
+      : (abortPatterns.length ? 'Disabled, so listed patterns will not apply.' : '')
+  );
+  setStatus('enableNavPrefetch',
+    fields.enableNavPrefetch && fields.enableNavPrefetch.checked
+      ? (!validNavLabels.length ? 'Add at least one label.' : '')
+      : (navLabels.length ? 'Disabled, so listed labels will not prefetch.' : '')
+  );
 }
 
 function syncUI() {
@@ -81,6 +154,7 @@ function syncUI() {
   if (fields.hideColumnMenuText) fields.hideColumnMenuText.disabled = !fields.enableHideColumn.checked;
   if (fields.hideRowMenuText) fields.hideRowMenuText.disabled = !fields.enableHideRow.checked;
   if (fields.rememberedUsername) fields.rememberedUsername.disabled = !fields.enableRememberUsername.checked;
+  refreshStatuses();
 }
 
 function readForm() {
@@ -147,5 +221,6 @@ Object.values(fields).forEach(field => {
     clearTimeout(saveTimer);
     if (field.type === 'checkbox') syncUI();
     saveTimer = setTimeout(saveSettings, field.type === 'checkbox' ? 0 : 300);
+    refreshStatuses();
   });
 });

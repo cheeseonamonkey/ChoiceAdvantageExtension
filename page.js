@@ -13,7 +13,7 @@
     .flatMap(line => line.split(','))
     .map(part => part.replace(/#.*/, ''))
     .map(normalizePattern)
-    .filter(Boolean);
+    .filter(pattern => pattern.length >= 3);
   const normalizeUrl = value => {
     try {
       return new URL(value, location.href).href.toLowerCase();
@@ -49,10 +49,16 @@
         relayAbort('fetch', url, state.abortRequestTimeoutMs);
       }, state.abortRequestTimeoutMs);
       const nextInit = { ...(init || {}), signal: controller.signal };
-      return nativeFetch.call(this, input, nextInit).finally(() => {
+      try {
+        return nativeFetch.call(this, input, nextInit).finally(() => {
+          clearTimeout(timer);
+          if (cleanupSignal) cleanupSignal();
+        });
+      } catch (e) {
         clearTimeout(timer);
         if (cleanupSignal) cleanupSignal();
-      });
+        throw e;
+      }
     };
   }
 
