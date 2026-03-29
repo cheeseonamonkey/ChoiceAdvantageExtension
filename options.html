@@ -236,9 +236,21 @@
           <input type="checkbox" id="removeUnusedFontPreload" checked>
           <div><strong>Remove stale font preload</strong><span>Removes the unused Sansation preload that causes repeated preload warnings.</span></div>
         </label>
+        <label class="toggle">
+          <input type="checkbox" id="enableAbortRequests">
+          <div><strong>Abort matching requests</strong><span>Applies a configurable timeout to matching page <code>fetch</code> and async <code>XMLHttpRequest</code> URLs.</span></div>
+        </label>
       </div>
       <label class="list-label" for="blockedHosts">Custom blocked hosts</label>
       <textarea id="blockedHosts" placeholder="example-cdn.com&#10;tracker.example.com"></textarea>
+      <div class="fields">
+        <div class="field">
+          <label for="abortRequestTimeoutMs">Abort timeout (ms)</label>
+          <input id="abortRequestTimeoutMs" type="number" min="1" step="100" value="2500">
+        </div>
+      </div>
+      <label class="list-label" for="abortRequestPatterns">Abort URL patterns</label>
+      <textarea id="abortRequestPatterns" placeholder="/welcome/images/welcome-thank-you.jpg&#10;ErrorMessageWriter.js"></textarea>
     </div>
     <label class="list-label" for="dnrList">DNR list</label>
     <textarea id="dnrList" placeholder="Smith, John&#10;Doe, Jane"></textarea>

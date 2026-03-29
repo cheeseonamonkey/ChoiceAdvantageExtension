@@ -8,6 +8,7 @@ Minimal ChoiceADVANTAGE productivity and performance extension.
 - Block known slow third-party scripts like Pendo by default
 - Block extra telemetry vendors like mPulse and Techlab by default
 - Add custom third-party hostnames to block per page load
+- Apply configurable abort timeouts to matching page `fetch` and async `XMLHttpRequest` URLs
 - Fix recurring page noise such as mixed-content favicon requests, broken welcome image 404s, duplicate error-writer loads, login popup null errors, and stale font preloads
 - Uses Manifest V3 `declarativeNetRequest` rules instead of brittle DOM hacks
 
@@ -44,6 +45,8 @@ Minimal ChoiceADVANTAGE productivity and performance extension.
 - Add one custom hostname per line under `Custom blocked hosts`
 - Comments after `#` are ignored, commas are allowed, and the first 50 custom hosts are used
 - The popup also has individual toggles for favicon repair, welcome image suppression, ErrorMessageWriter dedupe, login popup guarding, and stale font preload removal
+- `Abort matching requests` is off by default and only affects URL patterns you explicitly list
+- Request aborts apply to page `fetch` and async `XMLHttpRequest`, not generic browser-level script/network timeouts
 
 **DNR Names:**
 - Click extension icon in toolbar
@@ -66,7 +69,8 @@ Minimal ChoiceADVANTAGE productivity and performance extension.
 Files:
 - `manifest.json` - Extension config and MV3 permissions
 - `background.js` - Service worker for context menus and dynamic network block rules
-- `content.js` - early page sanitizers, DNR highlighting, escape key, row/column hiding, and in-page feedback toasts
+- `content.js` - early page sanitizers, page-script injection, DNR highlighting, escape key, row/column hiding, and in-page feedback toasts
+- `page.js` - page-context request-abort patch for matching `fetch`/XHR URLs
 - `options.html` - Popup UI for DNR and network settings
 - `options.js` - Settings storage
 
@@ -86,6 +90,8 @@ The extension intentionally stays lean and does not attempt fake browser control
 - global request timeout overrides
 - global cache expiry overrides
 - forced async conversion for arbitrary page scripts
+
+It does support targeted request aborts for configured `fetch`/XHR URL patterns, which is narrower and more reliable than pretending to control Chrome's network stack globally.
 
 v4.x removes everything except core essentials:
 - ❌ Column save/restore (just hide, no persistence)

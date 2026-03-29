@@ -5,6 +5,9 @@
   const LOG = '[CA Enhanced]';
   const DEFAULTS = {
     dnrList: '',
+    enableAbortRequests: false,
+    abortRequestTimeoutMs: 2500,
+    abortRequestPatterns: '',
     fixMixedContentFavicon: true,
     suppressWelcomeImage404: true,
     dedupeErrorMessageWriter: true,
@@ -80,8 +83,10 @@
   const BROKEN_WELCOME_IMAGE = '/choicehotels/welcome/images/welcome-thank-you.jpg';
   const ERROR_WRITER = 'errormessagewriter.js';
   const STALE_PRELOAD = 'sansation-light-webfont.woff';
+  const PAGE_CONFIG_EVENT = 'ca-enhanced-page-config';
+  const PAGE_ACTION_EVENT = 'ca-enhanced-auto-action';
   const seenScripts = new Set();
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, googlePopupGuardTimer: 0 };
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, googlePopupGuardTimer: 0, pageScriptInjected: false };
 
   const safe = (label, fn) => {
     try {
@@ -142,6 +147,27 @@
   const isErrorWriter = value => normalizeSrc(value).toLowerCase().includes(ERROR_WRITER);
   const isStalePreload = value => normalizeSrc(value).toLowerCase().includes(STALE_PRELOAD);
   const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload;
+
+  function injectPageScript() {
+    if (state.pageScriptInjected || !document.documentElement) return;
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('page.js');
+    script.dataset.caEnhanced = 'page';
+    script.async = false;
+    script.addEventListener('load', () => script.remove(), { once: true });
+    script.addEventListener('error', () => script.remove(), { once: true });
+    (document.head || document.documentElement).appendChild(script);
+    state.pageScriptInjected = true;
+  }
+
+  function syncPageConfig() {
+    window.__CA_ENHANCED_PAGE_CONFIG = {
+      enableAbortRequests: !!state.settings.enableAbortRequests,
+      abortRequestTimeoutMs: Math.max(1, Number(state.settings.abortRequestTimeoutMs) || DEFAULTS.abortRequestTimeoutMs),
+      abortRequestPatterns: state.settings.abortRequestPatterns || ''
+    };
+    window.dispatchEvent(new CustomEvent(PAGE_CONFIG_EVENT, { detail: window.__CA_ENHANCED_PAGE_CONFIG }));
+  }
 
   function sanitizeNode(node) {
     if (!node || node.nodeType !== 1) return;
@@ -301,6 +327,7 @@
   function applySettings(nextSettings) {
     state.settings = { ...state.settings, ...nextSettings };
     state.dnrRules = compileRules(state.settings.dnrList || '');
+    syncPageConfig();
     initHeadFixes();
     if (state.tooltip) state.tooltip.textContent = settingText('dnrTooltipText', DEFAULTS.dnrTooltipText);
     safe('DNR highlighting failed', refreshDNRLinks);
@@ -438,6 +465,9 @@
   }
 
   function initMessages() {
+    window.addEventListener(PAGE_ACTION_EVENT, e => safe('Auto action relay failed', () => {
+      if (e.detail && e.detail.message) showAutoAction(e.detail.message);
+    }));
     chrome.runtime.onMessage.addListener(msg => safe('Table action failed', () => {
       if (!msg) return;
       if (msg.action === 'hideColumn') hideSelectedColumn();
@@ -462,6 +492,7 @@
     safe('Storage sync init failed', initStorageSync);
   }
 
+  injectPageScript();
   initHeadFixes();
 
   chrome.storage.sync.get(DEFAULTS, items => safe('Init failed', () => {

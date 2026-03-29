@@ -8,6 +8,9 @@ const DEFAULTS = {
   dedupeErrorMessageWriter: true,
   guardHideGooglePopup: true,
   removeUnusedFontPreload: true,
+  enableAbortRequests: false,
+  abortRequestTimeoutMs: 2500,
+  abortRequestPatterns: '',
   enableDNR: true,
   enableEscapeKey: true,
   enableHideColumn: true,
@@ -30,6 +33,9 @@ const fields = {
   dedupeErrorMessageWriter: document.getElementById('dedupeErrorMessageWriter'),
   guardHideGooglePopup: document.getElementById('guardHideGooglePopup'),
   removeUnusedFontPreload: document.getElementById('removeUnusedFontPreload'),
+  enableAbortRequests: document.getElementById('enableAbortRequests'),
+  abortRequestTimeoutMs: document.getElementById('abortRequestTimeoutMs'),
+  abortRequestPatterns: document.getElementById('abortRequestPatterns'),
   enableDNR: document.getElementById('enableDNR'),
   enableEscapeKey: document.getElementById('enableEscapeKey'),
   enableHideColumn: document.getElementById('enableHideColumn'),
@@ -54,6 +60,8 @@ function showSaved() {
 }
 
 function syncUI() {
+  if (fields.abortRequestTimeoutMs) fields.abortRequestTimeoutMs.disabled = !fields.enableAbortRequests.checked;
+  if (fields.abortRequestPatterns) fields.abortRequestPatterns.disabled = !fields.enableAbortRequests.checked;
   if (fields.dnrList && fields.enableDNR) fields.dnrList.disabled = !fields.enableDNR.checked;
   if (fields.dnrTooltipText) fields.dnrTooltipText.disabled = !fields.enableDNR.checked;
   if (fields.dnrHighlightColor) fields.dnrHighlightColor.disabled = !fields.enableDNR.checked;
@@ -73,6 +81,9 @@ function readForm() {
     dedupeErrorMessageWriter: !!(fields.dedupeErrorMessageWriter && fields.dedupeErrorMessageWriter.checked),
     guardHideGooglePopup: !!(fields.guardHideGooglePopup && fields.guardHideGooglePopup.checked),
     removeUnusedFontPreload: !!(fields.removeUnusedFontPreload && fields.removeUnusedFontPreload.checked),
+    enableAbortRequests: !!(fields.enableAbortRequests && fields.enableAbortRequests.checked),
+    abortRequestTimeoutMs: fields.abortRequestTimeoutMs ? Math.max(1, parseInt(fields.abortRequestTimeoutMs.value || DEFAULTS.abortRequestTimeoutMs, 10) || DEFAULTS.abortRequestTimeoutMs) : DEFAULTS.abortRequestTimeoutMs,
+    abortRequestPatterns: fields.abortRequestPatterns ? fields.abortRequestPatterns.value || '' : '',
     enableDNR: !!(fields.enableDNR && fields.enableDNR.checked),
     enableEscapeKey: !!(fields.enableEscapeKey && fields.enableEscapeKey.checked),
     enableHideColumn: !!(fields.enableHideColumn && fields.enableHideColumn.checked),

@@ -17,6 +17,12 @@
       "run_at": "document_start"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["page.js"],
+      "matches": ["https://choiceadvantage.com/*", "https://*.choiceadvantage.com/*"]
+    }
+  ],
   "icons": {
     "16": "icon16.png",
     "48": "icon.png",
