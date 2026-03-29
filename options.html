@@ -192,6 +192,10 @@
         <div><strong>Block telemetry</strong><span>Blocks mpulse and Techlab third-party measurement scripts on ChoiceADVANTAGE pages.</span></div>
       </label>
       <label class="toggle">
+        <input type="checkbox" id="enableBlockAkamai" checked>
+        <div><strong>Block Akamai SW</strong><span>Blocks the Akamai service-worker script path used by the page head installer.</span></div>
+      </label>
+      <label class="toggle">
         <input type="checkbox" id="enableDNR" checked>
         <div><strong>DNR highlighting</strong><span>Underline matching guest names and show the hover reminder.</span></div>
       </label>
@@ -235,6 +239,10 @@
         <label class="toggle">
           <input type="checkbox" id="removeUnusedFontPreload" checked>
           <div><strong>Remove stale font preload</strong><span>Removes the unused Sansation preload that causes repeated preload warnings.</span></div>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="removeTelemetryHints" checked>
+          <div><strong>Remove telemetry hints</strong><span>Strips preconnect, dns-prefetch, preload, and prefetch hints that point at blocked telemetry hosts.</span></div>
         </label>
         <label class="toggle">
           <input type="checkbox" id="enableAbortRequests">

@@ -2,6 +2,7 @@
 const DEFAULTS = {
   enableBlockPendo: true,
   enableBlockTelemetry: true,
+  enableBlockAkamai: true,
   blockedHosts: '',
   enableHideColumn: true,
   enableHideRow: true,
@@ -9,7 +10,7 @@ const DEFAULTS = {
   hideRowMenuText: 'Hide Row'
 };
 const MENU_IDS = { column: 'hideColumn', row: 'hideRow' };
-const RULE_IDS = { blockPendo: 1, blockTelemetry: 2 };
+const RULE_IDS = { blockPendo: 1, blockTelemetry: 2, blockAkamai: 3 };
 const CUSTOM_RULE_START = 100;
 const MAX_CUSTOM_RULES = 50;
 const INITIATOR_DOMAINS = ['choiceadvantage.com', 'remoteaccess.choiceadvantage.com'];
@@ -34,6 +35,16 @@ const TELEMETRY_RULE = {
     initiatorDomains: INITIATOR_DOMAINS,
     requestDomains: ['s.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com'],
     resourceTypes: BLOCKED_RESOURCE_TYPES
+  }
+};
+const AKAMAI_RULE = {
+  id: RULE_IDS.blockAkamai,
+  priority: 1,
+  action: { type: 'block' },
+  condition: {
+    initiatorDomains: INITIATOR_DOMAINS,
+    urlFilter: '/akam-sw',
+    resourceTypes: ['script']
   }
 };
 
@@ -65,7 +76,7 @@ function syncDynamicRules(settings) {
   const customRules = parseBlockedHosts(settings.blockedHosts).slice(0, MAX_CUSTOM_RULES).map((host, i) => ruleForHost(CUSTOM_RULE_START + i, host));
   chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds: [...Object.values(RULE_IDS), ...Array.from({ length: MAX_CUSTOM_RULES }, (_, i) => CUSTOM_RULE_START + i)],
-    addRules: [settings.enableBlockPendo && PENDO_RULE, settings.enableBlockTelemetry && TELEMETRY_RULE, ...customRules].filter(Boolean)
+    addRules: [settings.enableBlockPendo && PENDO_RULE, settings.enableBlockTelemetry && TELEMETRY_RULE, settings.enableBlockAkamai && AKAMAI_RULE, ...customRules].filter(Boolean)
   }, () => {
     if (chrome.runtime.lastError) {
       console.error('[CA Enhanced] Dynamic rule sync failed:', chrome.runtime.lastError);
@@ -107,7 +118,7 @@ chrome.runtime.onStartup.addListener(loadContextMenu);
 chrome.storage.onChanged.addListener((changes, area) => {
   try {
     if (area !== 'sync') return;
-    if (changes.enableBlockPendo || changes.enableBlockTelemetry || changes.blockedHosts) chrome.storage.sync.get(DEFAULTS, items => syncDynamicRules(items));
+    if (changes.enableBlockPendo || changes.enableBlockTelemetry || changes.enableBlockAkamai || changes.blockedHosts) chrome.storage.sync.get(DEFAULTS, items => syncDynamicRules(items));
     if (!changes.enableHideColumn && !changes.enableHideRow && !changes.hideColumnMenuText && !changes.hideRowMenuText) return;
     chrome.storage.sync.get(DEFAULTS, items => syncContextMenu(items));
   } catch (e) {

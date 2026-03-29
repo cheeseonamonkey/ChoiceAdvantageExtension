@@ -13,6 +13,7 @@
     dedupeErrorMessageWriter: true,
     guardHideGooglePopup: true,
     removeUnusedFontPreload: true,
+    removeTelemetryHints: true,
     enableDNR: true,
     enableEscapeKey: true,
     enableHideColumn: true,
@@ -83,10 +84,11 @@
   const BROKEN_WELCOME_IMAGE = '/choicehotels/welcome/images/welcome-thank-you.jpg';
   const ERROR_WRITER = 'errormessagewriter.js';
   const STALE_PRELOAD = 'sansation-light-webfont.woff';
+  const TELEMETRY_HINT_HOSTS = ['content.nps.skytouchnps.com', 's.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com'];
   const PAGE_CONFIG_EVENT = 'ca-enhanced-page-config';
   const PAGE_ACTION_EVENT = 'ca-enhanced-auto-action';
   const seenScripts = new Set();
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, googlePopupGuardTimer: 0, pageScriptInjected: false };
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, googlePopupGuardTimer: 0, pageScriptInjected: false };
 
   const safe = (label, fn) => {
     try {
@@ -146,7 +148,8 @@
   const isBrokenFavicon = value => normalizeSrc(value) === BROKEN_FAVICON;
   const isErrorWriter = value => normalizeSrc(value).toLowerCase().includes(ERROR_WRITER);
   const isStalePreload = value => normalizeSrc(value).toLowerCase().includes(STALE_PRELOAD);
-  const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload;
+  const isTelemetryHint = value => TELEMETRY_HINT_HOSTS.some(host => normalizeSrc(value).includes(`://${host}`));
+  const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload || state.settings.removeTelemetryHints;
 
   function injectPageScript() {
     if (state.pageScriptInjected || !document.documentElement) return;
@@ -173,6 +176,7 @@
     if (!node || node.nodeType !== 1) return;
     if (state.settings.fixMixedContentFavicon && node.matches('link[rel*="icon"][href]') && isBrokenFavicon(node.href)) node.href = EMPTY_ICON;
     if (state.settings.removeUnusedFontPreload && node.matches('link[rel="preload"][href]') && isStalePreload(node.href)) node.remove();
+    if (state.settings.removeTelemetryHints && node.matches('link[href][rel]') && /\b(preconnect|dns-prefetch|prefetch|preload|modulepreload)\b/i.test(node.rel) && isTelemetryHint(node.href)) node.remove();
     if (state.settings.suppressWelcomeImage404 && node.matches('img[src]') && isBrokenWelcomeImage(node.src)) {
       node.removeAttribute('src');
       node.style.display = 'none';
@@ -226,12 +230,29 @@
     state.googlePopupGuardTimer = 0;
   }
 
+  function scheduleHeadObserverStop() {
+    if (!state.headObserver) return;
+    clearTimeout(state.headObserverStopTimer);
+    const stop = () => {
+      if (!state.headObserver) return;
+      state.headObserver.disconnect();
+      state.headObserver = null;
+    };
+    if (document.readyState === 'complete') state.headObserverStopTimer = window.setTimeout(stop, 3000);
+    else window.addEventListener('load', () => {
+      clearTimeout(state.headObserverStopTimer);
+      state.headObserverStopTimer = window.setTimeout(stop, 3000);
+    }, { once: true });
+  }
+
   function initHeadFixes() {
     if (state.headObserver) state.headObserver.disconnect();
+    clearTimeout(state.headObserverStopTimer);
     if (headFixesEnabled()) {
       sanitizeNode(document.documentElement);
       state.headObserver = new MutationObserver(mutations => mutations.forEach(({ addedNodes }) => addedNodes.forEach(node => sanitizeNode(node))));
       state.headObserver.observe(document.documentElement, { childList: true, subtree: true });
+      scheduleHeadObserverStop();
     }
     if (state.settings.guardHideGooglePopup) scheduleGooglePopupGuard();
     else stopGooglePopupGuard();
