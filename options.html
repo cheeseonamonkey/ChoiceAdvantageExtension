@@ -211,6 +211,21 @@
       vertical-align: middle;
     }
     .status.show { display: inline-flex; }
+    .repo-link {
+      position: fixed;
+      right: 14px;
+      bottom: 12px;
+      color: #8a5a12;
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: none;
+      background: rgba(255, 250, 241, 0.92);
+      border: 1px solid #e8d7b8;
+      border-radius: 999px;
+      padding: 5px 10px;
+      box-shadow: 0 6px 16px rgba(123, 97, 58, 0.12);
+    }
+    .repo-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -356,6 +371,7 @@
       <strong>Live behavior:</strong> highlighted names show a hover reminder, <strong>Escape</strong> triggers the page Back link with on-page feedback, and right-clicking a table area can expose <strong>Hide Column</strong> or <strong>Hide Row</strong>.
     </div>
   </div>
+  <a class="repo-link" href="https://github.com/cheeseonamonkey/ChoiceAdvantageExtension" target="_blank" rel="noreferrer">GitHub</a>
   
   <script src="options.js"></script>
 </body>
