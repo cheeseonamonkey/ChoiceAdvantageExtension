@@ -1,5 +1,13 @@
 const DEFAULTS = {
   dnrList: '',
+  enableBlockPendo: true,
+  enableBlockTelemetry: true,
+  blockedHosts: '',
+  fixMixedContentFavicon: true,
+  suppressWelcomeImage404: true,
+  dedupeErrorMessageWriter: true,
+  guardHideGooglePopup: true,
+  removeUnusedFontPreload: true,
   enableDNR: true,
   enableEscapeKey: true,
   enableHideColumn: true,
@@ -14,6 +22,14 @@ const DEFAULTS = {
 };
 const fields = {
   dnrList: document.getElementById('dnrList'),
+  enableBlockPendo: document.getElementById('enableBlockPendo'),
+  enableBlockTelemetry: document.getElementById('enableBlockTelemetry'),
+  blockedHosts: document.getElementById('blockedHosts'),
+  fixMixedContentFavicon: document.getElementById('fixMixedContentFavicon'),
+  suppressWelcomeImage404: document.getElementById('suppressWelcomeImage404'),
+  dedupeErrorMessageWriter: document.getElementById('dedupeErrorMessageWriter'),
+  guardHideGooglePopup: document.getElementById('guardHideGooglePopup'),
+  removeUnusedFontPreload: document.getElementById('removeUnusedFontPreload'),
   enableDNR: document.getElementById('enableDNR'),
   enableEscapeKey: document.getElementById('enableEscapeKey'),
   enableHideColumn: document.getElementById('enableHideColumn'),
@@ -49,6 +65,14 @@ function syncUI() {
 function readForm() {
   return {
     dnrList: fields.dnrList ? fields.dnrList.value || '' : '',
+    enableBlockPendo: !!(fields.enableBlockPendo && fields.enableBlockPendo.checked),
+    enableBlockTelemetry: !!(fields.enableBlockTelemetry && fields.enableBlockTelemetry.checked),
+    blockedHosts: fields.blockedHosts ? fields.blockedHosts.value || '' : '',
+    fixMixedContentFavicon: !!(fields.fixMixedContentFavicon && fields.fixMixedContentFavicon.checked),
+    suppressWelcomeImage404: !!(fields.suppressWelcomeImage404 && fields.suppressWelcomeImage404.checked),
+    dedupeErrorMessageWriter: !!(fields.dedupeErrorMessageWriter && fields.dedupeErrorMessageWriter.checked),
+    guardHideGooglePopup: !!(fields.guardHideGooglePopup && fields.guardHideGooglePopup.checked),
+    removeUnusedFontPreload: !!(fields.removeUnusedFontPreload && fields.removeUnusedFontPreload.checked),
     enableDNR: !!(fields.enableDNR && fields.enableDNR.checked),
     enableEscapeKey: !!(fields.enableEscapeKey && fields.enableEscapeKey.checked),
     enableHideColumn: !!(fields.enableHideColumn && fields.enableHideColumn.checked),

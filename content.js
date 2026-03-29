@@ -1,10 +1,15 @@
-// ChoiceAdvantage Enhanced v4.0 - Minimal
+// ChoiceAdvantage Enhanced v4.1 - Minimal
 (function() {
   'use strict';
 
   const LOG = '[CA Enhanced]';
   const DEFAULTS = {
     dnrList: '',
+    fixMixedContentFavicon: true,
+    suppressWelcomeImage404: true,
+    dedupeErrorMessageWriter: true,
+    guardHideGooglePopup: true,
+    removeUnusedFontPreload: true,
     enableDNR: true,
     enableEscapeKey: true,
     enableHideColumn: true,
@@ -39,6 +44,24 @@
     font: '600 12px/1.2 "Segoe UI", Arial, sans-serif',
     whiteSpace: 'nowrap'
   };
+  const AUTO_ACTION_STYLE = {
+    position: 'fixed',
+    right: '14px',
+    bottom: '14px',
+    zIndex: '2147483647',
+    maxWidth: '320px',
+    padding: '10px 12px',
+    borderRadius: '10px',
+    background: '#edf7ef',
+    color: '#215732',
+    border: '1px solid #c7e2cd',
+    boxShadow: '0 10px 28px rgba(0, 0, 0, 0.14)',
+    font: '600 12px/1.35 "Segoe UI", Arial, sans-serif',
+    opacity: '0',
+    transform: 'translateY(6px)',
+    transition: 'opacity 0.14s ease, transform 0.14s ease',
+    pointerEvents: 'none'
+  };
   const ALIASES = {
     ALEXANDER: 'ALEX', ALEXANDRA: 'ALEX',
     BENJAMIN: 'BEN',
@@ -52,7 +75,13 @@
     JAMES: 'JIM'
   };
   const USERNAME_HINTS = ['user', 'username', 'login', 'email', 'userid', 'account', 'member'];
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, rescanTimer: 0 };
+  const EMPTY_ICON = 'data:image/x-icon;base64,AAABAAEAEBAAAAAAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+  const BROKEN_FAVICON = 'http://www.choiceadvantage.com/choicehotels/sign_in.jsp';
+  const BROKEN_WELCOME_IMAGE = '/choicehotels/welcome/images/welcome-thank-you.jpg';
+  const ERROR_WRITER = 'errormessagewriter.js';
+  const STALE_PRELOAD = 'sansation-light-webfont.woff';
+  const seenScripts = new Set();
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, googlePopupGuardTimer: 0 };
 
   const safe = (label, fn) => {
     try {
@@ -101,6 +130,86 @@
 
   const cleanText = value => (value || '').trim();
   const settingText = (key, fallback) => cleanText(state.settings[key]) || fallback;
+  const normalizeSrc = value => {
+    try {
+      return new URL(value, location.href).href;
+    } catch (e) {
+      return String(value || '').trim();
+    }
+  };
+  const isBrokenWelcomeImage = value => normalizeSrc(value).includes(BROKEN_WELCOME_IMAGE);
+  const isBrokenFavicon = value => normalizeSrc(value) === BROKEN_FAVICON;
+  const isErrorWriter = value => normalizeSrc(value).toLowerCase().includes(ERROR_WRITER);
+  const isStalePreload = value => normalizeSrc(value).toLowerCase().includes(STALE_PRELOAD);
+  const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload;
+
+  function sanitizeNode(node) {
+    if (!node || node.nodeType !== 1) return;
+    if (state.settings.fixMixedContentFavicon && node.matches('link[rel*="icon"][href]') && isBrokenFavicon(node.href)) node.href = EMPTY_ICON;
+    if (state.settings.removeUnusedFontPreload && node.matches('link[rel="preload"][href]') && isStalePreload(node.href)) node.remove();
+    if (state.settings.suppressWelcomeImage404 && node.matches('img[src]') && isBrokenWelcomeImage(node.src)) {
+      node.removeAttribute('src');
+      node.style.display = 'none';
+    }
+    if (node.matches('script[src]')) sanitizeScript(node);
+    node.querySelectorAll?.('link[rel*="icon"][href], link[rel="preload"][href], img[src], script[src]').forEach(child => sanitizeNode(child));
+  }
+
+  function sanitizeScript(node) {
+    const src = normalizeSrc(node.src);
+    if (!src) return;
+    if (state.settings.dedupeErrorMessageWriter && isErrorWriter(src)) {
+      if (seenScripts.has(src)) {
+        node.type = 'javascript/blocked';
+        node.removeAttribute('src');
+        node.remove();
+        return;
+      }
+      seenScripts.add(src);
+    }
+  }
+
+  function guardHideGooglePopUp() {
+    if (!state.settings.guardHideGooglePopup || typeof window.hideGooglePopUp !== 'function' || window.hideGooglePopUp.__caGuarded) return;
+    const original = window.hideGooglePopUp;
+    const wrapped = function(...args) {
+      try {
+        return original.apply(this, args);
+      } catch (e) {
+        if (!(e instanceof TypeError) || !String(e.message || '').includes('style')) throw e;
+      }
+    };
+    wrapped.__caGuarded = true;
+    window.hideGooglePopUp = wrapped;
+  }
+
+  function scheduleGooglePopupGuard() {
+    if (!state.settings.guardHideGooglePopup || state.googlePopupGuardTimer) return;
+    state.googlePopupGuardTimer = window.setInterval(() => {
+      guardHideGooglePopUp();
+      if (window.hideGooglePopUp && window.hideGooglePopUp.__caGuarded) {
+        clearInterval(state.googlePopupGuardTimer);
+        state.googlePopupGuardTimer = 0;
+      }
+    }, 150);
+  }
+
+  function stopGooglePopupGuard() {
+    if (!state.googlePopupGuardTimer) return;
+    clearInterval(state.googlePopupGuardTimer);
+    state.googlePopupGuardTimer = 0;
+  }
+
+  function initHeadFixes() {
+    if (state.headObserver) state.headObserver.disconnect();
+    if (headFixesEnabled()) {
+      sanitizeNode(document.documentElement);
+      state.headObserver = new MutationObserver(mutations => mutations.forEach(({ addedNodes }) => addedNodes.forEach(node => sanitizeNode(node))));
+      state.headObserver.observe(document.documentElement, { childList: true, subtree: true });
+    }
+    if (state.settings.guardHideGooglePopup) scheduleGooglePopupGuard();
+    else stopGooglePopupGuard();
+  }
 
   function ensureTooltip() {
     if (state.tooltip || !document.body) return state.tooltip;
@@ -109,6 +218,27 @@
     Object.assign(state.tooltip.style, TOOLTIP_STYLE);
     document.body.appendChild(state.tooltip);
     return state.tooltip;
+  }
+
+  function ensureAutoActionToast() {
+    if (state.autoActionToast || !document.body) return state.autoActionToast;
+    state.autoActionToast = document.createElement('div');
+    Object.assign(state.autoActionToast.style, AUTO_ACTION_STYLE);
+    document.body.appendChild(state.autoActionToast);
+    return state.autoActionToast;
+  }
+
+  function showAutoAction(message) {
+    const toast = ensureAutoActionToast();
+    if (!toast || !message) return;
+    clearTimeout(state.autoActionTimer);
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    state.autoActionTimer = window.setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(6px)';
+    }, 1600);
   }
 
   function positionTooltip(link) {
@@ -171,6 +301,7 @@
   function applySettings(nextSettings) {
     state.settings = { ...state.settings, ...nextSettings };
     state.dnrRules = compileRules(state.settings.dnrList || '');
+    initHeadFixes();
     if (state.tooltip) state.tooltip.textContent = settingText('dnrTooltipText', DEFAULTS.dnrTooltipText);
     safe('DNR highlighting failed', refreshDNRLinks);
     safe('Username autofill failed', autofillRememberedUsername);
@@ -208,6 +339,7 @@
       const backLink = Array.from(document.querySelectorAll('a')).find(link => link.textContent && link.textContent.trim().toLowerCase() === targetText);
       if (!backLink) return;
       e.preventDefault();
+      showAutoAction(`Auto-clicked "${backLink.textContent.trim() || targetText}"`);
       backLink.click();
     }));
   }
@@ -236,13 +368,16 @@
     table.querySelectorAll('tr').forEach(rowEl => {
       if (rowEl.children[colIndex]) rowEl.children[colIndex].style.display = 'none';
     });
+    showAutoAction(`Auto-hid column "${state.lastClickedHeader.textContent.trim() || colIndex + 1}"`);
     state.lastClickedHeader = null;
   }
 
   function hideSelectedRow() {
     if (!state.settings.enableHideRow) return;
     if (!state.lastClickedRow) return console.warn(`${LOG} No row selected`);
+    const rowLabel = Array.from(state.lastClickedRow.querySelectorAll('th, td')).map(cell => cleanText(cell.textContent)).find(Boolean);
     state.lastClickedRow.style.display = 'none';
+    showAutoAction(`Auto-hid row${rowLabel ? ` "${rowLabel}"` : ''}`);
     state.lastClickedRow = null;
   }
 
@@ -326,6 +461,8 @@
     safe('Message listener init failed', initMessages);
     safe('Storage sync init failed', initStorageSync);
   }
+
+  initHeadFixes();
 
   chrome.storage.sync.get(DEFAULTS, items => safe('Init failed', () => {
     const boot = () => {

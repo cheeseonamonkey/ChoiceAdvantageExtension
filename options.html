@@ -184,6 +184,14 @@
     <div class="info">One guest per line. Use <strong>LAST, FIRST</strong> or <strong>FIRST LAST</strong>.</div>
     <div class="toggles">
       <label class="toggle">
+        <input type="checkbox" id="enableBlockPendo" checked>
+        <div><strong>Block Pendo</strong><span>Blocks the Skytouch Pendo script that can stall ChoiceADVANTAGE pages.</span></div>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="enableBlockTelemetry" checked>
+        <div><strong>Block telemetry</strong><span>Blocks mpulse and Techlab third-party measurement scripts on ChoiceADVANTAGE pages.</span></div>
+      </label>
+      <label class="toggle">
         <input type="checkbox" id="enableDNR" checked>
         <div><strong>DNR highlighting</strong><span>Underline matching guest names and show the hover reminder.</span></div>
       </label>
@@ -203,6 +211,34 @@
         <input type="checkbox" id="enableRememberUsername" checked>
         <div><strong>Remember username</strong><span>Save and autofill usernames only. Passwords are never stored.</span></div>
       </label>
+    </div>
+    <div class="section">
+      <h3>Network</h3>
+      <div class="info">One hostname per line. Comments after <strong>#</strong> are ignored, commas are allowed, and the first 50 custom hosts are used.</div>
+      <div class="toggles">
+        <label class="toggle">
+          <input type="checkbox" id="fixMixedContentFavicon" checked>
+          <div><strong>Fix mixed favicon</strong><span>Replaces the broken insecure favicon URL with a safe inline icon.</span></div>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="suppressWelcomeImage404" checked>
+          <div><strong>Suppress welcome image 404</strong><span>Hides the broken welcome image request that repeatedly 404s.</span></div>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="dedupeErrorMessageWriter" checked>
+          <div><strong>Dedupe ErrorMessageWriter</strong><span>Prevents duplicate ErrorMessageWriter script loads that trigger <code>backgroundErrorColor</code> redeclaration errors.</span></div>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="guardHideGooglePopup" checked>
+          <div><strong>Guard login popup handler</strong><span>Wraps the broken <code>hideGooglePopUp</code> handler so null nodes do not throw on sign-in pages.</span></div>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="removeUnusedFontPreload" checked>
+          <div><strong>Remove stale font preload</strong><span>Removes the unused Sansation preload that causes repeated preload warnings.</span></div>
+        </label>
+      </div>
+      <label class="list-label" for="blockedHosts">Custom blocked hosts</label>
+      <textarea id="blockedHosts" placeholder="example-cdn.com&#10;tracker.example.com"></textarea>
     </div>
     <label class="list-label" for="dnrList">DNR list</label>
     <textarea id="dnrList" placeholder="Smith, John&#10;Doe, Jane"></textarea>
@@ -242,7 +278,7 @@
       </div>
     </div>
     <div class="meta">
-      <strong>Live behavior:</strong> highlighted names show a hover reminder, <strong>Escape</strong> triggers the page Back link, and right-clicking a table area can expose <strong>Hide Column</strong> or <strong>Hide Row</strong>.
+      <strong>Live behavior:</strong> highlighted names show a hover reminder, <strong>Escape</strong> triggers the page Back link with on-page feedback, and right-clicking a table area can expose <strong>Hide Column</strong> or <strong>Hide Row</strong>.
     </div>
   </div>
   
