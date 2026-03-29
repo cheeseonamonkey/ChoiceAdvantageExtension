@@ -58,7 +58,8 @@ const fields = {
   dnrHighlightColor: document.getElementById('dnrHighlightColor'),
   backLinkText: document.getElementById('backLinkText'),
   hideColumnMenuText: document.getElementById('hideColumnMenuText'),
-  hideRowMenuText: document.getElementById('hideRowMenuText')
+  hideRowMenuText: document.getElementById('hideRowMenuText'),
+  dnrCount: document.getElementById('dnrCount')
 };
 const statusFields = {
   enableAbortRequests: document.getElementById('enableAbortRequestsStatus'),
@@ -130,6 +131,7 @@ function refreshStatuses() {
     const parts = line.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
     return parts.length >= 2;
   });
+  if (fields.dnrCount) fields.dnrCount.textContent = `${dnrLines.length} ${dnrLines.length === 1 ? 'entry' : 'entries'}`;
   setStatus('dnrList', dnrLines.length && validDnrLines.length !== dnrLines.length ? 'Some lines need both first and last names.' : '');
 
   setStatus('enableAbortRequests',
