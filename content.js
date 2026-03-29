@@ -142,7 +142,7 @@
 
   const cleanText = value => (value || '').trim();
   const settingText = (key, fallback) => cleanText(state.settings[key]) || fallback;
-  const parseSimpleList = value => String(value || '').split('\n').flatMap(line => line.split(',')).map(part => cleanText(part).toLowerCase()).filter(Boolean);
+  const parseSimpleList = value => String(value || '').split('\n').flatMap(line => line.split(',')).map(part => cleanText(part).toLowerCase()).filter(part => part.length >= 3);
   const normalizeSrc = value => {
     try {
       return new URL(value, location.href).href;
@@ -557,7 +557,7 @@
       if (!state.settings.enableNavPrefetch || !state.navPrefetchLabels.length) return;
       const link = target && target.closest && target.closest('a[href]');
       const label = cleanText(link && link.textContent).toLowerCase();
-      if (!link || !label || !state.navPrefetchLabels.some(value => label.includes(value))) return;
+      if (!link || !label || !state.navPrefetchLabels.some(value => label === value || label.includes(` ${value}`) || label.includes(`${value} `) || label.startsWith(`${value} `) || label.endsWith(` ${value}`))) return;
       prefetchNavLink(link);
     });
     document.addEventListener('mouseover', e => maybePrefetch(e.target), true);
