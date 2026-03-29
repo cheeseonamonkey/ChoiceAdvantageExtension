@@ -6,7 +6,7 @@ Minimal CHOICEADVANTAGE productivity/performance extension.
 ## Features
 - Blocks the slow extra scripts that tend to hang the page.
 - Cleans up broken or noisy page bits like bad icons, useless image requests, and duplicate loads.
-- Can preload common next pages like Arrivals, Departures, and In-House.
+- Can lazy-load noncritical images or preload common next pages like Arrivals, Departures, and In-House.
 - Can stop certain requests sooner if you list them.
 - Adds guest-name highlighting, Escape-to-Back, row/column hide, username memory, and small action popups.
 
@@ -19,6 +19,7 @@ Minimal CHOICEADVANTAGE productivity/performance extension.
 ## Use
 - `Custom blocked hosts` is a list of extra sites to skip.
 - `Animation mode` can leave motion alone, slow it down, or turn it off.
+- `Lazy-load images` delays noncritical welcome/login images until they are closer to view.
 - `Abort matching requests` only applies to the request words you enter.
 - `Prefetch nav targets` only works for the next-page links you name.
 - `DNR list` is the guest-name list; the popup shows how many names you entered.

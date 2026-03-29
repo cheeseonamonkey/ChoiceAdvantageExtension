@@ -296,7 +296,11 @@
           <input type="checkbox" id="removeTelemetryHints" checked>
           <div><strong>Remove telemetry hints</strong><span>Strips preconnect, dns-prefetch, preload, and prefetch hints that point at blocked telemetry hosts.</span></div>
         </label>
-      <label class="toggle" title="Hide nonessential welcome and login images to reduce layout work.">
+        <label class="toggle" title="Delay noncritical images until they are closer to view.">
+          <input type="checkbox" id="lazyLoadNoncriticalImages" checked>
+          <div><strong>Lazy-load images</strong><span>Delays noncritical welcome and login images until they are closer to view.</span></div>
+        </label>
+        <label class="toggle" title="Hide nonessential welcome and login images to reduce layout work.">
           <input type="checkbox" id="hideNoncriticalImages" checked>
           <div><strong>Hide welcome/login images</strong><span>Hides nonessential welcome and login images to reduce layout and image work on those pages.</span></div>
         </label>

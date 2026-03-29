@@ -14,6 +14,7 @@
     guardHideGooglePopup: true,
     removeUnusedFontPreload: true,
     removeTelemetryHints: true,
+    lazyLoadNoncriticalImages: true,
     hideNoncriticalImages: true,
     animationMode: 'reduced',
     enableNavPrefetch: true,
@@ -156,7 +157,13 @@
   const isStalePreload = value => normalizeSrc(value).toLowerCase().includes(STALE_PRELOAD);
   const isTelemetryHint = value => TELEMETRY_HINT_HOSTS.some(host => normalizeSrc(value).includes(`://${host}`));
   const isNoncriticalImage = value => NONCRITICAL_IMAGE_PATTERNS.some(pattern => normalizeSrc(value).includes(pattern));
-  const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload || state.settings.removeTelemetryHints || state.settings.hideNoncriticalImages;
+  const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload || state.settings.removeTelemetryHints || state.settings.lazyLoadNoncriticalImages || state.settings.hideNoncriticalImages;
+
+  function hintLazyLoad(node) {
+    node.loading = 'lazy';
+    node.decoding = 'async';
+    if ('fetchPriority' in node) node.fetchPriority = 'low';
+  }
 
   function injectPageScript() {
     if (state.pageScriptInjected || !document.documentElement) return;
@@ -188,9 +195,9 @@
       node.removeAttribute('src');
       node.style.display = 'none';
     }
+    if (state.settings.lazyLoadNoncriticalImages && node.matches('img[src]') && isNoncriticalImage(node.src)) hintLazyLoad(node);
     if (state.settings.hideNoncriticalImages && node.matches('img[src]') && isNoncriticalImage(node.src)) {
-      node.loading = 'lazy';
-      node.decoding = 'async';
+      hintLazyLoad(node);
       node.style.visibility = 'hidden';
       node.style.maxHeight = '1px';
       node.style.maxWidth = '1px';
