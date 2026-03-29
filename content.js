@@ -6,7 +6,7 @@
   const DEFAULTS = {
     dnrList: '',
     enableAbortRequests: false,
-    abortRequestTimeoutMs: 2500,
+    abortRequestTimeoutMs: 3500,
     abortRequestPatterns: '',
     fixMixedContentFavicon: true,
     suppressWelcomeImage404: true,
@@ -20,11 +20,15 @@
     enableNavPrefetch: true,
     navPrefetchLabels: 'arrivals\ndepartures\nin-house',
     enableDNR: true,
+    enableCacheControl: false,
+    cacheControlMaxAgeSeconds: 3600,
+    cacheControlPatterns: '',
     enableEscapeKey: true,
     enableHideColumn: true,
     enableHideRow: true,
     enableRememberUsername: true,
     rememberedUsername: '',
+    rememberedUsernames: '',
     dnrTooltipText: 'Check DNR!',
     dnrHighlightColor: '#dc3545',
     backLinkText: 'Back',
@@ -84,6 +88,7 @@
     JAMES: 'JIM'
   };
   const USERNAME_HINTS = ['user', 'username', 'login', 'email', 'userid', 'account', 'member'];
+  const MAX_REMEMBERED_USERNAMES = 20;
   const EMPTY_ICON = 'data:image/x-icon;base64,AAABAAEAEBAAAAAAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
   const BROKEN_FAVICON = 'http://www.choiceadvantage.com/choicehotels/sign_in.jsp';
   const BROKEN_WELCOME_IMAGE = '/choicehotels/welcome/images/welcome-thank-you.jpg';
@@ -94,7 +99,7 @@
   const PAGE_CONFIG_EVENT = 'ca-enhanced-page-config';
   const PAGE_ACTION_EVENT = 'ca-enhanced-auto-action';
   const seenScripts = new Set();
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, googlePopupGuardTimer: 0, pageScriptInjected: false, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [] };
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, googlePopupGuardTimer: 0, pageScriptInjected: false, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [], usernameOptions: null };
 
   const safe = (label, fn) => {
     try {
@@ -144,6 +149,19 @@
   const cleanText = value => (value || '').trim();
   const settingText = (key, fallback) => cleanText(state.settings[key]) || fallback;
   const parseSimpleList = value => String(value || '').split('\n').flatMap(line => line.split(',')).map(part => cleanText(part).toLowerCase()).filter(part => part.length >= 3);
+  const escapeRegExp = value => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parseRememberedUsernames = value => {
+    const seen = new Set();
+    return String(value || '').split('\n').map(cleanText).filter(Boolean).filter(username => {
+      const key = username.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, MAX_REMEMBERED_USERNAMES);
+  };
+  const getRememberedUsernames = settings => parseRememberedUsernames(settings.rememberedUsernames || settings.rememberedUsername || '');
+  const serializeRememberedUsernames = usernames => usernames.join('\n');
+  const matchesNavPrefetchLabel = (text, labels) => !!text && labels.some(label => new RegExp(`(^|\\s)${escapeRegExp(label).replace(/\s+/g, '\\s+')}(?=\\s|$)`, 'i').test(text));
   const normalizeSrc = value => {
     try {
       return new URL(value, location.href).href;
@@ -181,7 +199,10 @@
     window.__CA_ENHANCED_PAGE_CONFIG = {
       enableAbortRequests: !!state.settings.enableAbortRequests,
       abortRequestTimeoutMs: Math.max(1, Number(state.settings.abortRequestTimeoutMs) || DEFAULTS.abortRequestTimeoutMs),
-      abortRequestPatterns: state.settings.abortRequestPatterns || ''
+      abortRequestPatterns: state.settings.abortRequestPatterns || '',
+      enableCacheControl: !!state.settings.enableCacheControl,
+      cacheControlMaxAgeSeconds: Math.max(1, Number(state.settings.cacheControlMaxAgeSeconds) || DEFAULTS.cacheControlMaxAgeSeconds),
+      cacheControlPatterns: state.settings.cacheControlPatterns || ''
     };
     window.dispatchEvent(new CustomEvent(PAGE_CONFIG_EVENT, { detail: window.__CA_ENHANCED_PAGE_CONFIG }));
   }
@@ -505,16 +526,45 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function ensureUsernameOptions(usernames) {
+    if (!document.documentElement || !usernames.length) return null;
+    if (!state.usernameOptions) {
+      state.usernameOptions = document.createElement('datalist');
+      state.usernameOptions.id = 'ca-enhanced-remembered-usernames';
+      (document.body || document.documentElement).appendChild(state.usernameOptions);
+    }
+    state.usernameOptions.replaceChildren(...usernames.map(value => Object.assign(document.createElement('option'), { value })));
+    return state.usernameOptions;
+  }
+
+  function syncUsernameOptions() {
+    const usernames = state.settings.enableRememberUsername ? getRememberedUsernames(state.settings) : [];
+    const optionId = state.usernameOptions && state.usernameOptions.id;
+    getUsernameFields().forEach(input => {
+      if (usernames.length) {
+        const options = ensureUsernameOptions(usernames);
+        if (options) input.setAttribute('list', options.id);
+      } else if (optionId && input.getAttribute('list') === optionId) input.removeAttribute('list');
+    });
+    if (!usernames.length && state.usernameOptions) state.usernameOptions.replaceChildren();
+  }
+
   function autofillRememberedUsername() {
-    if (!state.settings.enableRememberUsername || !state.settings.rememberedUsername) return;
-    getUsernameFields().forEach(input => fillUsernameField(input, cleanText(state.settings.rememberedUsername)));
+    const usernames = getRememberedUsernames(state.settings);
+    syncUsernameOptions();
+    if (!state.settings.enableRememberUsername || !usernames.length) return;
+    getUsernameFields().forEach(input => fillUsernameField(input, usernames[0]));
   }
 
   function rememberUsername(value) {
     const username = cleanText(value);
-    if (!state.settings.enableRememberUsername || !username || username === state.settings.rememberedUsername) return;
-    state.settings.rememberedUsername = username;
-    chrome.storage.sync.set({ rememberedUsername: username }, () => {
+    if (!state.settings.enableRememberUsername || !username) return;
+    const usernames = [username, ...getRememberedUsernames(state.settings).filter(saved => saved.toLowerCase() !== username.toLowerCase())].slice(0, MAX_REMEMBERED_USERNAMES);
+    const rememberedUsernames = serializeRememberedUsernames(usernames);
+    if (rememberedUsernames === (state.settings.rememberedUsernames || '') && usernames[0] === state.settings.rememberedUsername) return;
+    state.settings.rememberedUsername = usernames[0];
+    state.settings.rememberedUsernames = rememberedUsernames;
+    chrome.storage.sync.set({ rememberedUsername: usernames[0], rememberedUsernames }, () => {
       if (chrome.runtime.lastError) {
         console.error(`${LOG} Username save failed:`, chrome.runtime.lastError);
       }
@@ -538,10 +588,11 @@
     window.addEventListener(PAGE_ACTION_EVENT, e => safe('Auto action relay failed', () => {
       if (e.detail && e.detail.message) showAutoAction(e.detail.message);
     }));
-    chrome.runtime.onMessage.addListener(msg => safe('Table action failed', () => {
+    chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => safe('Message action failed', () => {
       if (!msg) return;
       if (msg.action === 'hideColumn') hideSelectedColumn();
       if (msg.action === 'hideRow') hideSelectedRow();
+      if (msg.action === 'countNavPrefetchMatches') sendResponse({ navPrefetchMatches: Array.from(document.querySelectorAll('a[href]')).filter(link => matchesNavPrefetchLabel(cleanText(link.textContent).toLowerCase(), parseSimpleList(msg.navPrefetchLabels || state.settings.navPrefetchLabels))).length });
     }));
   }
 
@@ -567,7 +618,7 @@
       if (!state.settings.enableNavPrefetch || !state.navPrefetchLabels.length) return;
       const link = target && target.closest && target.closest('a[href]');
       const label = cleanText(link && link.textContent).toLowerCase();
-      if (!link || !label || !state.navPrefetchLabels.some(value => label === value || label.includes(` ${value}`) || label.includes(`${value} `) || label.startsWith(`${value} `) || label.endsWith(` ${value}`))) return;
+      if (!link || !matchesNavPrefetchLabel(label, state.navPrefetchLabels)) return;
       prefetchNavLink(link);
     });
     document.addEventListener('mouseover', e => maybePrefetch(e.target), true);
