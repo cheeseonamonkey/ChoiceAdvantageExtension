@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ChoiceAdvantage Enhanced</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 440px;
+      padding: 16px;
+      background:
+        radial-gradient(circle at top right, #fff8e8, transparent 38%),
+        linear-gradient(180deg, #fffdf8 0%, #f7f2e8 100%);
+      color: #4b4237;
+      font: 500 13px/1.45 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #2f4b3f;
+      margin-bottom: 6px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      margin-top: 10px;
+      padding: 12px 13px;
+      border: 1px solid #d7ccb8;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #3f372f;
+      box-shadow: inset 0 1px 2px rgba(96, 73, 37, 0.06);
+      font: 500 12px/1.5 "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+      resize: vertical;
+      outline: none;
+    }
+    textarea:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      background: rgba(244, 239, 230, 0.9);
+    }
+    textarea:focus {
+      border-color: #b8924f;
+      box-shadow: 0 0 0 3px rgba(184, 146, 79, 0.18);
+    }
+    .info {
+      color: #6c6255;
+      font-size: 12px;
+    }
+    .saved {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #edf7ef;
+      color: #2f6b43;
+      border: 1px solid #c7e2cd;
+      font-size: 11px;
+      font-weight: 700;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+    .saved.show { opacity: 1; transform: translateY(0); }
+    .panel {
+      border: 1px solid #e4d8c6;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 12px 34px rgba(123, 97, 58, 0.12);
+      padding: 16px;
+      backdrop-filter: blur(4px);
+    }
+    .eyebrow {
+      color: #b07a2b;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .meta {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #eadfce;
+      color: #5f5549;
+      font-size: 12px;
+    }
+    .meta strong {
+      color: #3d352c;
+    }
+    .section {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #eadfce;
+    }
+    .section h3 {
+      color: #3d352c;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .toggles {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0 4px;
+    }
+    .toggle {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 12px;
+      border: 1px solid #eadfce;
+      border-radius: 12px;
+      background: rgba(255, 251, 243, 0.76);
+    }
+    .toggle input {
+      margin-top: 2px;
+      accent-color: #b07a2b;
+    }
+    .toggle strong {
+      display: block;
+      color: #3d352c;
+      font-size: 13px;
+    }
+    .toggle span {
+      display: block;
+      color: #6c6255;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+    .fields {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+    .field label {
+      color: #3d352c;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .field input {
+      width: 100%;
+      height: 38px;
+      padding: 8px 10px;
+      border: 1px solid #d7ccb8;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #3f372f;
+      font: 500 12px/1.2 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: #b8924f;
+      box-shadow: 0 0 0 3px rgba(184, 146, 79, 0.18);
+    }
+    .field input[type="color"] {
+      padding: 4px;
+      cursor: pointer;
+    }
+    .field input:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      background: rgba(244, 239, 230, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="saved" id="saved">Saved</div>
+  <div class="panel">
+    <div class="eyebrow">ChoiceAdvantage Enhanced</div>
+    <h2>DNR Names</h2>
+    <div class="info">One guest per line. Use <strong>LAST, FIRST</strong> or <strong>FIRST LAST</strong>.</div>
+    <div class="toggles">
+      <label class="toggle">
+        <input type="checkbox" id="enableDNR" checked>
+        <div><strong>DNR highlighting</strong><span>Underline matching guest names and show the hover reminder.</span></div>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="enableEscapeKey" checked>
+        <div><strong>Escape key back</strong><span>Press Escape to activate the page's Back link outside form fields.</span></div>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="enableHideColumn" checked>
+        <div><strong>Hide column menu</strong><span>Show the right-click Hide Column action for table headers.</span></div>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="enableHideRow" checked>
+        <div><strong>Hide row menu</strong><span>Show a right-click Hide Row action for the table row you click.</span></div>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="enableRememberUsername" checked>
+        <div><strong>Remember username</strong><span>Save and autofill usernames only. Passwords are never stored.</span></div>
+      </label>
+    </div>
+    <textarea id="dnrList" placeholder="Smith, John&#10;Doe, Jane"></textarea>
+    <div class="section">
+      <h3>Login</h3>
+      <div class="fields">
+        <div class="field">
+          <label for="rememberedUsername">Remembered username</label>
+          <input id="rememberedUsername" type="text" placeholder="Saved automatically from login forms">
+        </div>
+      </div>
+      <div class="info">This stores only the username/email text. Password fields are ignored.</div>
+    </div>
+    <div class="section">
+      <h3>Behavior</h3>
+      <div class="fields">
+        <div class="field">
+          <label for="dnrTooltipText">DNR hover text</label>
+          <input id="dnrTooltipText" type="text" value="Check DNR!">
+        </div>
+        <div class="field">
+          <label for="dnrHighlightColor">DNR underline color</label>
+          <input id="dnrHighlightColor" type="color" value="#dc3545">
+        </div>
+        <div class="field">
+          <label for="backLinkText">Back link text</label>
+          <input id="backLinkText" type="text" value="Back">
+        </div>
+        <div class="field">
+          <label for="hideColumnMenuText">Hide column menu label</label>
+          <input id="hideColumnMenuText" type="text" value="Hide Column">
+        </div>
+        <div class="field">
+          <label for="hideRowMenuText">Hide row menu label</label>
+          <input id="hideRowMenuText" type="text" value="Hide Row">
+        </div>
+      </div>
+    </div>
+    <div class="meta">
+      <strong>Live behavior:</strong> highlighted names show a hover reminder, <strong>Escape</strong> triggers the page Back link, and right-clicking a table area can expose <strong>Hide Column</strong> or <strong>Hide Row</strong>.
+    </div>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>
