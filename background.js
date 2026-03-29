@@ -103,6 +103,10 @@ function syncContextMenu(settings) {
 
 function loadContextMenu() {
   chrome.storage.sync.get(DEFAULTS, items => {
+    if (chrome.runtime.lastError) {
+      console.error('[CA Enhanced] Failed to load extension settings:', chrome.runtime.lastError);
+      return;
+    }
     try {
       syncContextMenu(items);
       syncDynamicRules(items);

@@ -16,6 +16,7 @@ Minimal CHOICEADVANTAGE productivity and performance extension.
 
 ### UI / Workflow
 - DNR highlighting with configurable names and hover text.
+- The DNR popup shows a live entry count under the list.
 - Escape key clicks Back.
 - Hide rows and columns from the context menu.
 - Remember username.

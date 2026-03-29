@@ -71,6 +71,7 @@ const statusFields = {
   dnrList: document.getElementById('dnrListStatus')
 };
 const RESERVED_HOSTS = new Set(['choiceadvantage.com', 'remoteaccess.choiceadvantage.com', 'content.nps.skytouchnps.com', 's.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com']);
+const MAX_CUSTOM_HOSTS = 50;
 const saved = document.getElementById('saved');
 let saveTimer = 0;
 let savedTimer = 0;
@@ -113,7 +114,10 @@ function refreshStatuses() {
     if (!host || RESERVED_HOSTS.has(host) || seenHosts.has(host)) blockedIssues += 1;
     else seenHosts.add(host);
   });
-  setStatus('blockedHosts', blockedIssues ? 'Some entries are ignored, duplicated, or reserved.' : '');
+  const blockedWarnings = [];
+  if (seenHosts.size > MAX_CUSTOM_HOSTS) blockedWarnings.push(`Only the first ${MAX_CUSTOM_HOSTS} valid hosts are used.`);
+  if (blockedIssues) blockedWarnings.push('Some entries are ignored, duplicated, or reserved.');
+  setStatus('blockedHosts', blockedWarnings.join(' '));
 
   const timeout = Number(fields.abortRequestTimeoutMs && fields.abortRequestTimeoutMs.value);
   setStatus('abortRequestTimeoutMs', !Number.isInteger(timeout) || timeout < 1 ? 'Must be a positive whole number.' : '');
@@ -205,6 +209,10 @@ function saveSettings() {
 }
 
 chrome.storage.sync.get(DEFAULTS, items => {
+  if (chrome.runtime.lastError) {
+    console.error('[CA Enhanced] Failed to load settings:', chrome.runtime.lastError);
+    return;
+  }
   try {
     Object.entries(fields).forEach(([key, field]) => {
       if (!field) return;

@@ -287,8 +287,11 @@
     clearTimeout(state.headObserverStopTimer);
     if (headFixesEnabled()) {
       sanitizeNode(document.documentElement);
-      state.headObserver = new MutationObserver(mutations => mutations.forEach(({ addedNodes }) => addedNodes.forEach(node => sanitizeNode(node))));
-      state.headObserver.observe(document.documentElement, { childList: true, subtree: true });
+      state.headObserver = new MutationObserver(mutations => mutations.forEach(({ addedNodes, target }) => {
+        addedNodes.forEach(node => sanitizeNode(node));
+        if (target) sanitizeNode(target);
+      }));
+      state.headObserver.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'href', 'rel'] });
       scheduleHeadObserverStop();
     } else state.headObserver = null;
     if (state.settings.guardHideGooglePopup) scheduleGooglePopupGuard();
@@ -587,6 +590,10 @@
   initHeadFixes();
 
   chrome.storage.sync.get(DEFAULTS, items => safe('Init failed', () => {
+    if (chrome.runtime.lastError) {
+      console.error(`${LOG} Failed to load settings:`, chrome.runtime.lastError);
+      items = DEFAULTS;
+    }
     const boot = () => {
       applySettings(items || DEFAULTS);
       init();
