@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ChoiceAdvantage Enhanced",
-  "version": "4.0",
-  "description": "DNR highlighting, hide columns, escape key",
+  "version": "4.1",
+  "description": "DNR alerts, table tools, escape back, and username-only memory",
   "permissions": ["storage", "contextMenus"],
   "host_permissions": ["https://choiceadvantage.com/*", "https://*.choiceadvantage.com/*"],
   "background": {

@@ -281,6 +281,7 @@
   function rememberUsername(value) {
     const username = cleanText(value);
     if (!state.settings.enableRememberUsername || !username || username === state.settings.rememberedUsername) return;
+    state.settings.rememberedUsername = username;
     chrome.storage.sync.set({ rememberedUsername: username }, () => {
       if (chrome.runtime.lastError) {
         console.error(`${LOG} Username save failed:`, chrome.runtime.lastError);

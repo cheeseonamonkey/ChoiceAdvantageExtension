@@ -38,8 +38,7 @@ function showSaved() {
 }
 
 function syncUI() {
-  if (!fields.dnrList || !fields.enableDNR) return;
-  fields.dnrList.disabled = !fields.enableDNR.checked;
+  if (fields.dnrList && fields.enableDNR) fields.dnrList.disabled = !fields.enableDNR.checked;
   if (fields.dnrTooltipText) fields.dnrTooltipText.disabled = !fields.enableDNR.checked;
   if (fields.dnrHighlightColor) fields.dnrHighlightColor.disabled = !fields.enableDNR.checked;
   if (fields.hideColumnMenuText) fields.hideColumnMenuText.disabled = !fields.enableHideColumn.checked;
