@@ -1,0 +1,13 @@
+{
+  "name": "choiceadvantage-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Build tooling for the Choice Advantage Chrome extension",
+  "scripts": {
+    "build:css": "tailwindcss -i options.tailwind.css -o options.css"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.2.2",
+    "tailwindcss": "4.2.2"
+  }
+}

@@ -16,8 +16,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Install Node dependencies
+        run: npm ci
       - name: Build popup CSS
-        run: npx --yes @tailwindcss/cli@4.2.2 -i options.tailwind.css -o options.css
+        run: npm run build:css
       - name: Verify generated CSS is committed
         run: git diff --exit-code -- options.css
       - name: Build release zip
