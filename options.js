@@ -160,7 +160,7 @@ function updateNavPrefetchPreview() {
 function scheduleNavPrefetchPreview() {
   clearTimeout(previewTimer);
   if (activeTab !== 'network') return;
-  previewTimer = setTimeout(updateNavPrefetchPreview, 140);
+  previewTimer = setTimeout(updateNavPrefetchPreview, 40);
 }
 
 function refreshStatuses() {

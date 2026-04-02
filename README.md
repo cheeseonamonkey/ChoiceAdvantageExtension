@@ -1,44 +1,38 @@
 # ChoiceAdvantage Enhanced v4.1
 
-Minimal CHOICEADVANTAGE productivity/performance extension.  
+Compact ChoiceAdvantage helper for DNR highlighting, page cleanup, username memory, fast form fill, and a few low-friction performance tweaks.
+
 [Repo](https://github.com/cheeseonamonkey/ChoiceAdvantageExtension) | [Releases](https://github.com/cheeseonamonkey/ChoiceAdvantageExtension/releases)
 
-## Features
-- Blocks the slow extra scripts that tend to hang the page.
-- Cleans up broken or noisy page bits like bad icons, useless image requests, and duplicate loads.
-- Can lazy-load noncritical images or preload common next pages like Arrivals, Departures, and In-House.
-- Can stop certain requests sooner if you list them.
-- Adds guest-name highlighting, Escape-to-Back, row/column hide, username memory, and small action popups.
+## What It Does
+- Blocks the noisier third-party scripts and trims broken page bits.
+- Highlights DNR matches, keeps Escape/back handy, and exposes hide-column / hide-row actions.
+- Remembers usernames only on pages containing `User Login`.
+- Adds quick fake profile/name/address/phone fill actions for editable forms.
+- Prefetches likely next-page links and keeps the popup compact.
 
 ## Install
-1. Fastest non-dev-mode install: publish the zip to the Chrome Web Store or Edge Add-ons and install from there.
-2. For local testing only, extract the ZIP, open `chrome://extensions/`, enable Developer mode, and load unpacked.
-3. Open the popup, keep the defaults unless a page breaks, and reload after changes.
-4. If you need a managed-device install path, use a signed CRX plus enterprise policy.
+1. Best non-dev-mode path: publish the zip to the Chrome Web Store or Edge Add-ons.
+2. For local testing, extract the ZIP, open `chrome://extensions/`, enable Developer mode, and load unpacked.
+3. For managed devices, use a signed CRX plus enterprise policy.
 
-## Use
-- `Custom blocked hosts` is a list of extra sites to skip.
-- `Animation mode` can leave motion alone, slow it down, or turn it off.
-- `Lazy-load images` delays noncritical welcome/login images until they are closer to view.
-- `Abort matching requests` only applies to the request words you enter.
-- `Prefetch nav targets` only works for the next-page links you name.
-- `DNR list` is the guest-name list; the popup shows how many names you entered.
+## Popup
+- `Main` holds DNR and the most-used controls.
+- `Tools` holds Escape/back, hide-column, hide-row, and username memory.
+- `Network` holds blockers, prefetch, and the lighter page-fix controls.
 
-## Layout
-- `background.js` - dynamic block rules and context menus
-- `content.js` - head sanitizers, DNR highlighting, Escape, row/column hide, toasts
-- `page.js` - page-context request aborts
-- `options.html` / `options.js` - popup UI and storage
+## Config
+- `Font mode` can stay default, switch to slightly larger system fonts, use a more legible compact stack, or use a quiet serif stack.
+- `Hide top bar` and `Hide Resource Center` trim extra page chrome.
+- `Custom blocked hosts` adds extra request blocks.
+- `DNR list` is the guest-name list shown at the top of the popup.
 
 ## Automation
-- CI validates JS syntax and `manifest.json`, then rebuilds `options.css` and uploads a zip artifact.
-- `Dist` builds a clean extension zip on pushes to `main`/`master`.
+- CI checks syntax, validates `manifest.json`, rebuilds `options.css`, and uploads a zip artifact.
+- `Dist` packages a clean zip on pushes to `main` / `master`.
 - Release rebuilds `options.css`, publishes the zip from `v*` tags, and marks the release latest.
 
 ## Troubleshooting
 - Reload the extension at `chrome://extensions/` if it seems inactive.
-- Disable the last blocker you changed if a page breaks.
+- Disable the last thing you changed if a page breaks.
 - Warning badges in the popup mean the value is invalid, ignored, or disabled.
-
-## License
-Free to use and modify.

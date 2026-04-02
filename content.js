@@ -108,6 +108,7 @@
     { rel: 'preconnect', href: 'https://sggl.la1-c2-ph2.salesforceliveagent.com', crossorigin: 'anonymous' }
   ];
   const NONCRITICAL_IMAGE_PATTERNS = ['/choicehotels/welcome/', '/choicehotels/sign_in', '/choicehotels/login'];
+  const NAV_PREFETCH_LIMIT = 6;
   const PAGE_CONFIG_EVENT = 'ca-enhanced-page-config';
   const PAGE_ACTION_EVENT = 'ca-enhanced-auto-action';
   const seenScripts = new Set();
@@ -534,7 +535,7 @@
     state.rescanTimer = window.setTimeout(() => {
       state.rescanTimer = 0;
       safe('DNR highlighting failed', refreshDNRLinks);
-    }, 60);
+    }, 20);
   }
 
   function applySettings(nextSettings) {
@@ -548,6 +549,7 @@
     if (state.tooltip) state.tooltip.textContent = settingText('dnrTooltipText', DEFAULTS.dnrTooltipText);
     safe('DNR highlighting failed', refreshDNRLinks);
     safe('Username autofill failed', autofillRememberedUsername);
+    safe('Nav prefetch failed', prefetchMatchingNavLinks);
   }
 
   function initDNRUI() {
@@ -722,7 +724,7 @@
     new MutationObserver(() => safe('Username autofill failed', () => {
       state.isUserLoginPage = null;
       clearTimeout(autofillTimer);
-      autofillTimer = setTimeout(autofillRememberedUsername, 120);
+      autofillTimer = setTimeout(autofillRememberedUsername, 50);
     })).observe(document.body || document.documentElement, { childList: true, subtree: true });
   }
 
@@ -756,9 +758,21 @@
       rel.href = url.href;
       (document.head || document.documentElement).appendChild(rel);
       state.prefetchedHrefs.add(url.href);
+      return true;
     } catch (e) {
       console.warn(`${LOG} Nav prefetch failed:`, e);
     }
+  }
+
+  function prefetchMatchingNavLinks(root = document) {
+    if (!state.settings.enableNavPrefetch || !state.navPrefetchLabels.length) return;
+    let count = 0;
+    root.querySelectorAll('a[href]').forEach(link => {
+      if (count >= NAV_PREFETCH_LIMIT) return;
+      const label = cleanText(link.textContent).toLowerCase();
+      if (!matchesNavPrefetchLabel(label, state.navPrefetchLabels)) return;
+      if (prefetchNavLink(link)) count += 1;
+    });
   }
 
   function initNavPrefetch() {
@@ -767,10 +781,12 @@
       const link = target && target.closest && target.closest('a[href]');
       const label = cleanText(link && link.textContent).toLowerCase();
       if (!link || !matchesNavPrefetchLabel(label, state.navPrefetchLabels)) return;
-      prefetchNavLink(link);
+      return prefetchNavLink(link);
     });
     document.addEventListener('mouseover', e => maybePrefetch(e.target), true);
+    document.addEventListener('pointerdown', e => maybePrefetch(e.target), true);
     document.addEventListener('focusin', e => maybePrefetch(e.target), true);
+    prefetchMatchingNavLinks();
   }
 
   function initStorageSync() {
