@@ -23,8 +23,15 @@ jobs:
     needs: validate
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build popup CSS
+        run: npx --yes @tailwindcss/cli@4.2.2 -i options.tailwind.css -o options.css
+      - name: Verify generated CSS is committed
+        run: git diff --exit-code -- options.css
       - name: Build extension zip
-        run: zip -r choiceadvantage-enhanced.zip . -x '.git/*' '.github/*' '.serena/*' 'logs/*'
+        run: zip -r choiceadvantage-enhanced.zip . -x '.git/*' '.github/*' '.serena/*' '.codex/*' 'logs/*' 'dist/*' 'options.tailwind.css' 'choiceadvantage-enhanced.zip'
       - uses: actions/upload-artifact@v4
         with:
           name: choiceadvantage-enhanced

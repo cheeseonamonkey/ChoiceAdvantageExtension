@@ -14,8 +14,8 @@
     guardHideGooglePopup: true,
     removeUnusedFontPreload: true,
     removeTelemetryHints: true,
-    lazyLoadNoncriticalImages: true,
-    hideNoncriticalImages: true,
+    lazyLoadNoncriticalImages: false,
+    hideNoncriticalImages: false,
     animationMode: 'reduced',
     enableNavPrefetch: true,
     navPrefetchLabels: 'arrivals\ndepartures\nin-house',
@@ -95,11 +95,19 @@
   const ERROR_WRITER = 'errormessagewriter.js';
   const STALE_PRELOAD = 'sansation-light-webfont.woff';
   const TELEMETRY_HINT_HOSTS = ['content.nps.skytouchnps.com', 's.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com'];
+  const HEAD_HINTS = [
+    { rel: 'dns-prefetch', href: '//skytouchcommunity.force.com' },
+    { rel: 'preconnect', href: 'https://skytouchcommunity.force.com', crossorigin: 'anonymous' },
+    { rel: 'dns-prefetch', href: '//skytouchu.litmos.com' },
+    { rel: 'preconnect', href: 'https://skytouchu.litmos.com', crossorigin: 'anonymous' },
+    { rel: 'dns-prefetch', href: '//sggl.la1-c2-ph2.salesforceliveagent.com' },
+    { rel: 'preconnect', href: 'https://sggl.la1-c2-ph2.salesforceliveagent.com', crossorigin: 'anonymous' }
+  ];
   const NONCRITICAL_IMAGE_PATTERNS = ['/choicehotels/welcome/', '/choicehotels/sign_in', '/choicehotels/login'];
   const PAGE_CONFIG_EVENT = 'ca-enhanced-page-config';
   const PAGE_ACTION_EVENT = 'ca-enhanced-auto-action';
   const seenScripts = new Set();
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, googlePopupGuardTimer: 0, pageScriptInjected: false, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [], usernameOptions: null };
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, headHintsLoadBound: false, googlePopupGuardTimer: 0, pageScriptInjected: false, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [], usernameOptions: null, isUserLoginPage: null, loginPageCheckTime: 0, loginPageTitle: '' };
 
   const safe = (label, fn) => {
     try {
@@ -209,6 +217,7 @@
 
   function sanitizeNode(node) {
     if (!node || node.nodeType !== 1) return;
+    if (node.matches('head') || node === document.documentElement) ensureHeadHints();
     if (state.settings.fixMixedContentFavicon && node.matches('link[rel*="icon"][href]') && isBrokenFavicon(node.href)) node.href = EMPTY_ICON;
     if (state.settings.removeUnusedFontPreload && node.matches('link[rel="preload"][href]') && isStalePreload(node.href)) node.remove();
     if (state.settings.removeTelemetryHints && node.matches('link[href][rel]') && /\b(preconnect|dns-prefetch|prefetch|preload|modulepreload)\b/i.test(node.rel) && isTelemetryHint(node.href)) node.remove();
@@ -226,6 +235,29 @@
     }
     if (node.matches('script[src]')) sanitizeScript(node);
     node.querySelectorAll?.('link[rel*="icon"][href], link[rel="preload"][href], img[src], script[src]').forEach(child => sanitizeNode(child));
+  }
+
+  function ensureHeadHints() {
+    const head = document.head;
+    if (!head) {
+      if (!state.headHintsLoadBound) {
+        state.headHintsLoadBound = true;
+        window.addEventListener('DOMContentLoaded', ensureHeadHints, { once: true });
+      }
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    HEAD_HINTS.forEach(hint => {
+      const selector = `link[data-ca-enhanced="head-hint"][rel="${hint.rel}"][href="${hint.href}"]`;
+      if (head.querySelector(selector)) return;
+      const link = document.createElement('link');
+      link.rel = hint.rel;
+      link.href = hint.href;
+      link.dataset.caEnhanced = 'head-hint';
+      if (hint.crossorigin) link.crossOrigin = hint.crossorigin;
+      fragment.appendChild(link);
+    });
+    if (fragment.childNodes.length) head.insertBefore(fragment, head.firstChild);
   }
 
   function syncAnimationMode() {
@@ -508,7 +540,19 @@
     return input.autocomplete === 'username' || USERNAME_HINTS.some(hint => text.includes(hint));
   }
 
+  function isUserLoginPage() {
+    const title = document.title || '';
+    const now = Date.now();
+    if (state.isUserLoginPage !== null && title === state.loginPageTitle && now - state.loginPageCheckTime < 3000) return state.isUserLoginPage;
+    const bodyText = document.body && (document.body.innerText || document.body.textContent) || '';
+    state.isUserLoginPage = /user login/i.test(`${title} ${bodyText}`);
+    state.loginPageTitle = title;
+    state.loginPageCheckTime = now;
+    return state.isUserLoginPage;
+  }
+
   function isLoginContext(input) {
+    if (!isUserLoginPage()) return false;
     const form = input && input.form;
     if (form && form.querySelector('input[type="password"]')) return true;
     const container = input && input.closest && input.closest('form, [role="form"], .login, .signin, .sign-in');
@@ -573,6 +617,7 @@
 
   function initRememberUsername() {
     autofillRememberedUsername();
+    let autofillTimer = 0;
     document.addEventListener('submit', e => safe('Username remember failed', () => {
       if (!state.settings.enableRememberUsername || !e.target || !e.target.querySelector) return;
       const field = getUsernameFields(e.target)[0];
@@ -581,7 +626,11 @@
     document.addEventListener('change', e => safe('Username remember failed', () => {
       if (e.target && isUsernameField(e.target) && isLoginContext(e.target)) rememberUsername(e.target.value);
     }), true);
-    new MutationObserver(() => safe('Username autofill failed', autofillRememberedUsername)).observe(document.body || document.documentElement, { childList: true, subtree: true });
+    new MutationObserver(() => safe('Username autofill failed', () => {
+      state.isUserLoginPage = null;
+      clearTimeout(autofillTimer);
+      autofillTimer = setTimeout(autofillRememberedUsername, 120);
+    })).observe(document.body || document.documentElement, { childList: true, subtree: true });
   }
 
   function initMessages() {
@@ -634,6 +683,7 @@
   }
 
   function init() {
+    safe('Head hint init failed', ensureHeadHints);
     safe('DNR UI init failed', initDNRUI);
     safe('Escape key init failed', initEscapeKey);
     safe('Table tracking init failed', initTableTracking);

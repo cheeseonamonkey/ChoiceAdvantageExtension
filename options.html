@@ -3,219 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>ChoiceAdvantage Enhanced</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      width: 396px;
-      padding: 4px;
-      background: #0f1115;
-      color: #e5e7eb;
-      font: 13px/1.35 "Segoe UI", Arial, sans-serif;
-    }
-    .panel {
-      border: 1px solid #2c313c;
-      border-radius: 9px;
-      background: #171b22;
-      padding: 8px;
-    }
-    .header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-    h1 {
-      font-size: 15px;
-      font-weight: 700;
-      color: #f3f4f6;
-    }
-    .subtle, .info, .meta-row {
-      color: #98a2b3;
-      font-size: 12px;
-    }
-    .saved {
-      color: #7dd3a5;
-      font-size: 11px;
-      font-weight: 700;
-      opacity: 0;
-      transition: opacity 0.12s ease;
-      white-space: nowrap;
-    }
-    .saved.show { opacity: 1; }
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 8px;
-    }
-    .tab {
-      flex: 1;
-      height: 28px;
-      border: 1px solid #333948;
-      border-radius: 7px;
-      background: #1c212b;
-      color: #cbd5e1;
-      font: inherit;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .tab.is-active {
-      background: #2d3645;
-      border-color: #49566c;
-      color: #fff;
-    }
-    [data-tab-panel][hidden] { display: none; }
-    .stack, .fields {
-      display: grid;
-      gap: 6px;
-    }
-    .toggle {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 7px;
-      align-items: start;
-      padding: 7px 8px;
-      border: 1px solid #2b303b;
-      border-radius: 7px;
-      background: #1b2028;
-    }
-    .toggle input {
-      margin-top: 2px;
-      accent-color: #8aa0c2;
-    }
-    .toggle strong {
-      display: block;
-      font-size: 12px;
-      color: #f3f4f6;
-    }
-    .toggle span {
-      display: block;
-      margin-top: 2px;
-      color: #98a2b3;
-      font-size: 11px;
-    }
-    .section {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid #2c313c;
-    }
-    .section:first-child {
-      margin-top: 0;
-      padding-top: 0;
-      border-top: 0;
-    }
-    .section-title {
-      margin-bottom: 5px;
-      color: #f3f4f6;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .label {
-      display: block;
-      margin: 7px 0 4px;
-      color: #e5e7eb;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    textarea, input, select {
-      width: 100%;
-      border: 1px solid #343c49;
-      border-radius: 8px;
-      background: #11151b;
-      color: #f3f4f6;
-      outline: none;
-    }
-    textarea, input {
-      padding: 8px 9px;
-    }
-    textarea {
-      min-height: 84px;
-      resize: vertical;
-      font: 12px/1.45 "SFMono-Regular", Consolas, monospace;
-    }
-    #dnrList { min-height: 188px; }
-    input, select {
-      height: 34px;
-      font: inherit;
-    }
-    select {
-      padding: 0 8px;
-    }
-    textarea:focus, input:focus, select:focus {
-      border-color: #60708a;
-      box-shadow: 0 0 0 2px rgba(96, 112, 138, 0.22);
-    }
-    textarea:disabled, input:disabled, select:disabled {
-      background: #151922;
-      color: #7f8796;
-      cursor: not-allowed;
-    }
-    .grid {
-      display: grid;
-      gap: 6px;
-      margin-top: 6px;
-    }
-    .grid.two {
-      grid-template-columns: 1fr 1fr;
-    }
-    .field {
-      display: grid;
-      gap: 4px;
-    }
-    .field label {
-      color: #e5e7eb;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .meta-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-top: 5px;
-      flex-wrap: wrap;
-    }
-    .meta-row span:first-child {
-      color: #f3f4f6;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .meta-row span:last-child {
-      flex: 1;
-      min-width: 0;
-      text-align: right;
-    }
-    .status {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: 14px;
-      height: 14px;
-      margin-left: 4px;
-      border-radius: 999px;
-      background: #3a1e24;
-      border: 1px solid #6d2a33;
-      color: #fda4af;
-      font-size: 10px;
-      font-weight: 800;
-      vertical-align: middle;
-    }
-    .status.show { display: inline-flex; }
-    .footer {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 8px;
-      padding-top: 6px;
-      border-top: 1px solid #2c313c;
-    }
-    .repo-link {
-      color: #aab4c5;
-      font-size: 12px;
-      font-weight: 600;
-      text-decoration: none;
-    }
-    .repo-link:hover { text-decoration: underline; }
-  </style>
+  <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <div class="panel">
@@ -228,54 +16,62 @@
     </div>
 
     <div class="tabs" role="tablist" aria-label="Settings sections">
-      <button class="tab is-active" id="tab-dnr" data-tab-button="dnr" role="tab" aria-selected="true" aria-controls="panel-dnr" type="button">DNR</button>
+      <button class="tab is-active" id="tab-main" data-tab-button="main" role="tab" aria-selected="true" aria-controls="panel-main" type="button">Main</button>
       <button class="tab" id="tab-tools" data-tab-button="tools" role="tab" aria-selected="false" aria-controls="panel-tools" type="button">Tools</button>
       <button class="tab" id="tab-network" data-tab-button="network" role="tab" aria-selected="false" aria-controls="panel-network" type="button">Network</button>
     </div>
 
-    <section id="panel-dnr" data-tab-panel="dnr" role="tabpanel" aria-labelledby="tab-dnr">
-      <div class="stack">
+    <section id="panel-main" data-tab-panel="main" role="tabpanel" aria-labelledby="tab-main">
+      <div class="section">
         <label class="toggle" title="Underline and mark flagged guest names in tables.">
           <input type="checkbox" id="enableDNR" checked>
           <div><strong>DNR highlighting</strong><span>Underline matching names and show the hover reminder.</span></div>
         </label>
-      </div>
-      <label class="label" for="dnrList" title="One guest per line. Use LAST, FIRST or FIRST LAST.">DNR list <span class="status" id="dnrListStatus" hidden>!</span></label>
-      <textarea id="dnrList" placeholder="Smith, John&#10;Doe, Jane"></textarea>
-      <div class="meta-row">
-        <span id="dnrCount">0 entries</span>
-        <span>One guest per line. Use <strong>LAST, FIRST</strong> or <strong>FIRST LAST</strong>.</span>
-      </div>
-      <div class="grid two">
-        <div class="field">
-          <label for="dnrTooltipText" title="Text shown in the hover reminder for flagged DNR names.">Hover text</label>
-          <input id="dnrTooltipText" type="text" value="Check DNR!">
+
+        <label class="label" for="dnrList" title="One guest per line. Use LAST, FIRST or FIRST LAST.">DNR list <span class="status" id="dnrListStatus" hidden>!</span></label>
+        <textarea id="dnrList" placeholder="Smith, John&#10;Doe, Jane"></textarea>
+        <div class="meta-row">
+          <span id="dnrCount">0 entries</span>
+          <span>One guest per line. Use <strong>LAST, FIRST</strong> or <strong>FIRST LAST</strong>.</span>
         </div>
-        <div class="field">
-          <label for="dnrHighlightColor" title="Underline color for flagged DNR names.">Underline color</label>
-          <input id="dnrHighlightColor" type="color" value="#dc3545">
+
+        <div class="grid two">
+          <div class="field">
+            <label for="dnrTooltipText" title="Text shown in the hover reminder for flagged DNR names.">Hover text</label>
+            <input id="dnrTooltipText" type="text" value="Check DNR!">
+          </div>
+          <div class="field">
+            <label for="dnrHighlightColor" title="Underline color for flagged DNR names.">Underline color</label>
+            <input id="dnrHighlightColor" type="color" value="#dc3545">
+          </div>
+        </div>
+
+        <div class="footer">
+          <div class="note">Highlighted names show the hover reminder. Escape triggers Back. Table menus expose Hide Column and Hide Row.</div>
         </div>
       </div>
     </section>
 
     <section id="panel-tools" data-tab-panel="tools" role="tabpanel" aria-labelledby="tab-tools" hidden>
-      <div class="stack">
-        <label class="toggle" title="Press Escape to trigger the page Back link outside form fields.">
-          <input type="checkbox" id="enableEscapeKey" checked>
-          <div><strong>Escape key back</strong><span>Press Escape to activate the page Back link.</span></div>
-        </label>
-        <label class="toggle" title="Expose the context-menu action for hiding a clicked table column.">
-          <input type="checkbox" id="enableHideColumn" checked>
-          <div><strong>Hide column menu</strong><span>Show the right-click Hide Column action.</span></div>
-        </label>
-        <label class="toggle" title="Expose the context-menu action for hiding a clicked table row.">
-          <input type="checkbox" id="enableHideRow" checked>
-          <div><strong>Hide row menu</strong><span>Show the right-click Hide Row action.</span></div>
-        </label>
-        <label class="toggle" title="Save and autofill usernames only. Passwords are never stored.">
-          <input type="checkbox" id="enableRememberUsername" checked>
-          <div><strong>Remember usernames</strong><span>Keep multiple usernames and suggest them on login fields.</span></div>
-        </label>
+      <div class="section">
+        <div class="stack">
+          <label class="toggle" title="Press Escape to trigger the page Back link outside form fields.">
+            <input type="checkbox" id="enableEscapeKey" checked>
+            <div><strong>Escape key back</strong><span>Press Escape to activate the page Back link.</span></div>
+          </label>
+          <label class="toggle" title="Expose the context-menu action for hiding a clicked table column.">
+            <input type="checkbox" id="enableHideColumn" checked>
+            <div><strong>Hide column menu</strong><span>Show the right-click Hide Column action.</span></div>
+          </label>
+          <label class="toggle" title="Expose the context-menu action for hiding a clicked table row.">
+            <input type="checkbox" id="enableHideRow" checked>
+            <div><strong>Hide row menu</strong><span>Show the right-click Hide Row action.</span></div>
+          </label>
+          <label class="toggle" title="Save and autofill usernames only. Passwords are never stored.">
+            <input type="checkbox" id="enableRememberUsername" checked>
+            <div><strong>Remember usernames</strong><span>Keep multiple usernames and suggest them on login fields.</span></div>
+          </label>
+        </div>
       </div>
 
       <div class="section">
@@ -290,7 +86,7 @@
 
       <div class="section">
         <div class="section-title">Labels</div>
-        <div class="grid">
+        <div class="fields">
           <div class="field">
             <label for="backLinkText" title="Exact text the Escape key handler clicks to go back.">Back link text</label>
             <input id="backLinkText" type="text" value="Back">
@@ -316,14 +112,15 @@
             <div><strong>Block Pendo</strong><span>Blocks the Skytouch Pendo script.</span></div>
           </label>
           <label class="toggle" title="Blocks mpulse and Techlab third-party measurement scripts on ChoiceADVANTAGE pages.">
-            <input type="checkbox" id="enableBlockTelemetry" checked>
+            <input type="checkbox" id="enableBlockTelemetry">
             <div><strong>Block telemetry</strong><span>Blocks mpulse and Techlab measurement scripts.</span></div>
           </label>
           <label class="toggle" title="Blocks the Akamai service-worker script path used by the page head installer.">
-            <input type="checkbox" id="enableBlockAkamai" checked>
+            <input type="checkbox" id="enableBlockAkamai">
             <div><strong>Block Akamai SW</strong><span>Blocks the Akamai service-worker script path.</span></div>
           </label>
         </div>
+
         <label class="label" for="blockedHosts">Custom blocked hosts <span class="status" id="blockedHostsStatus" hidden>!</span></label>
         <textarea id="blockedHosts" placeholder="example-cdn.com&#10;tracker.example.com"></textarea>
         <div class="info">One hostname per line. Comments after <strong>#</strong> are ignored, commas are allowed, and the first 50 custom hosts are used.</div>
@@ -356,33 +153,9 @@
             <input type="checkbox" id="removeTelemetryHints" checked>
             <div><strong>Remove telemetry hints</strong><span>Strip resource hints pointing at blocked telemetry hosts.</span></div>
           </label>
-          <label class="toggle" title="Delay noncritical images until they are closer to view.">
-            <input type="checkbox" id="lazyLoadNoncriticalImages" checked>
-            <div><strong>Lazy-load images</strong><span>Delay noncritical welcome and login images.</span></div>
-          </label>
-          <label class="toggle" title="Hide nonessential welcome and login images to reduce layout work.">
-            <input type="checkbox" id="hideNoncriticalImages" checked>
-            <div><strong>Hide welcome/login images</strong><span>Hide nonessential welcome and login images.</span></div>
-          </label>
-          <label class="toggle" title="Apply a configurable timeout to matching page fetch and async XHR requests.">
-            <input type="checkbox" id="enableAbortRequests">
-            <div><strong>Abort matching requests <span class="status" id="enableAbortRequestsStatus" hidden>!</span></strong><span>Abort matching page <code>fetch</code> and async <code>XMLHttpRequest</code> calls after a timeout.</span></div>
-          </label>
-          <label class="toggle" title="Apply request-side cache hints to matching GET and HEAD requests.">
-            <input type="checkbox" id="enableCacheControl">
-            <div><strong>Cache matching requests <span class="status" id="enableCacheControlStatus" hidden>!</span></strong><span>Prefer cached responses for matching GET and HEAD requests.</span></div>
-          </label>
-          <label class="toggle" title="Prefetch common navigation pages when you hover or focus their links.">
-            <input type="checkbox" id="enableNavPrefetch" checked>
-            <div><strong>Prefetch nav targets <span class="status" id="enableNavPrefetchStatus" hidden>!</span></strong><span>Prefetch links whose text matches the labels below.</span></div>
-          </label>
         </div>
 
         <div class="grid two">
-          <div class="field">
-            <label for="abortRequestTimeoutMs">Abort timeout (ms) <span class="status" id="abortRequestTimeoutMsStatus" hidden>!</span></label>
-            <input id="abortRequestTimeoutMs" type="number" min="1" step="100" value="3500">
-          </div>
           <div class="field">
             <label for="animationMode" title="Reduce or disable CSS transitions and animations to cut rendering work.">Animation mode</label>
             <select id="animationMode">
@@ -391,16 +164,13 @@
               <option value="off">Off</option>
             </select>
           </div>
+          <div class="stack">
+            <label class="toggle" title="Prefetch common navigation pages when you hover or focus their links.">
+              <input type="checkbox" id="enableNavPrefetch" checked>
+              <div><strong>Prefetch nav targets <span class="status" id="enableNavPrefetchStatus" hidden>!</span></strong><span>Prefetch links whose text matches the labels below.</span></div>
+            </label>
+          </div>
         </div>
-
-        <label class="label" for="abortRequestPatterns" title="One URL fragment per line or comma-separated. Matching fetch/XHR requests are aborted after the timeout.">Abort URL patterns <span class="status" id="abortRequestPatternsStatus" hidden>!</span></label>
-        <textarea id="abortRequestPatterns" placeholder="/welcome/images/welcome-thank-you.jpg&#10;ErrorMessageWriter.js"></textarea>
-
-        <label class="label" for="cacheControlMaxAgeSeconds">Cache max-age (seconds) <span class="status" id="cacheControlMaxAgeSecondsStatus" hidden>!</span></label>
-        <input id="cacheControlMaxAgeSeconds" type="number" min="1" step="60" value="3600">
-
-        <label class="label" for="cacheControlPatterns" title="One URL fragment per line or comma-separated. Matching GET and HEAD requests get cache-control request hints.">Cache-control URL patterns <span class="status" id="cacheControlPatternsStatus" hidden>!</span></label>
-        <textarea id="cacheControlPatterns" placeholder="/choicehotels/welcome/&#10;ArrivalList.do"></textarea>
 
         <label class="label" for="navPrefetchLabels" title="One label per line or comma-separated. Matching link text will be prefetched on hover or focus.">Nav prefetch labels <span class="status" id="navPrefetchLabelsStatus" hidden>!</span></label>
         <textarea id="navPrefetchLabels" placeholder="arrivals&#10;departures&#10;in-house"></textarea>
@@ -408,14 +178,50 @@
           <span id="navPrefetchCount">0 labels</span>
           <span id="navPrefetchMatches">Open a ChoiceADVANTAGE page to preview matches.</span>
         </div>
+
+        <div class="legacy" hidden aria-hidden="true">
+          <div class="section-title">Legacy compatibility</div>
+          <label class="toggle" title="Apply a configurable timeout to matching page fetch and async XHR requests.">
+            <input type="checkbox" id="enableAbortRequests">
+            <div><strong>Abort matching requests <span class="status" id="enableAbortRequestsStatus" hidden>!</span></strong><span>Abort matching page <code>fetch</code> and async <code>XMLHttpRequest</code> calls after a timeout.</span></div>
+          </label>
+          <div class="grid two">
+            <div class="field">
+              <label for="abortRequestTimeoutMs">Abort timeout (ms) <span class="status" id="abortRequestTimeoutMsStatus" hidden>!</span></label>
+              <input id="abortRequestTimeoutMs" type="number" min="1" step="100" value="3500">
+            </div>
+            <div class="field">
+              <label for="cacheControlMaxAgeSeconds">Cache max-age (seconds) <span class="status" id="cacheControlMaxAgeSecondsStatus" hidden>!</span></label>
+              <input id="cacheControlMaxAgeSeconds" type="number" min="1" step="60" value="3600">
+            </div>
+          </div>
+          <label class="label" for="abortRequestPatterns" title="One URL fragment per line or comma-separated. Matching fetch/XHR requests are aborted after the timeout.">Abort URL patterns <span class="status" id="abortRequestPatternsStatus" hidden>!</span></label>
+          <textarea id="abortRequestPatterns" placeholder="/welcome/images/welcome-thank-you.jpg&#10;ErrorMessageWriter.js"></textarea>
+          <label class="label" for="cacheControlPatterns" title="One URL fragment per line or comma-separated. Matching GET and HEAD requests get cache-control request hints.">Cache-control URL patterns <span class="status" id="cacheControlPatternsStatus" hidden>!</span></label>
+          <textarea id="cacheControlPatterns" placeholder="/choicehotels/welcome/&#10;ArrivalList.do"></textarea>
+          <label class="toggle" title="Delay noncritical images until they are closer to view.">
+            <input type="checkbox" id="lazyLoadNoncriticalImages">
+            <div><strong>Lazy-load images</strong><span>Delay noncritical welcome and login images.</span></div>
+          </label>
+          <label class="toggle" title="Hide nonessential welcome and login images to reduce layout work.">
+            <input type="checkbox" id="hideNoncriticalImages">
+            <div><strong>Hide welcome/login images</strong><span>Hide nonessential welcome and login images.</span></div>
+          </label>
+          <label class="toggle" title="Apply request-side cache hints to matching GET and HEAD requests.">
+            <input type="checkbox" id="enableCacheControl">
+            <div><strong>Cache matching requests <span class="status" id="enableCacheControlStatus" hidden>!</span></strong><span>Prefer cached responses for matching GET and HEAD requests.</span></div>
+          </label>
+        </div>
       </div>
     </section>
 
     <div class="footer">
+      <div class="note">Popup settings stay compact; hidden legacy controls remain stored for older profiles.</div>
       <a class="repo-link" href="https://github.com/cheeseonamonkey/ChoiceAdvantageExtension" target="_blank" rel="noreferrer">GitHub</a>
     </div>
   </div>
 
+  <script src="jquery.min.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

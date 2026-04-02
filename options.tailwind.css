@@ -1,0 +1,54 @@
+/* Source for options.css. Rebuild: /tmp/codex-tailwind/node_modules/.bin/tailwindcss -i options.tailwind.css -o options.css */
+@import "tailwindcss";
+
+@layer base {
+  * { @apply m-0 p-0 box-border; }
+  body {
+    @apply w-[414px] p-[10px] text-[12px] font-medium leading-[1.35];
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(180deg, #fffdf8 0%, #f5efe7 100%);
+    color: #4b4237;
+  }
+  [data-tab-panel][hidden] { display: none; }
+}
+
+@layer components {
+  .panel { @apply border border-[#e1d6c8] rounded-[18px] bg-white p-[10px] shadow-[0_8px_24px_rgba(123,97,58,.10)]; }
+  .header { @apply flex items-start justify-between gap-2 mb-2; }
+  h1 { @apply text-[16px] font-bold text-[#2f4b3f]; }
+  .subtle, .info, .note { @apply text-[12px] text-[#6c6255]; }
+  .saved { @apply text-[11px] font-bold opacity-0 transition duration-150 whitespace-nowrap -translate-y-0.5; color: #2f6b43; }
+  .saved.show { @apply opacity-100 translate-y-0; }
+  .tabs { @apply flex gap-1 mb-2.5; }
+  .tab { @apply flex-1 min-h-[28px] border border-[#d7ccb8] rounded-[9px] bg-[#fbfaf6] text-[#54493d] text-[12px] font-bold cursor-pointer; }
+  .tab.is-active { @apply bg-[#f7ebcf] border-[#cbb079] text-[#2f4b3f]; }
+  .section { @apply mt-2.5 pt-2.5 border-t border-[#eadfce]; }
+  .section:first-child { @apply mt-0 pt-0 border-t-0; }
+  .section-title { @apply mb-1.5 text-[12px] font-bold text-[#3d352c]; }
+  .stack, .fields, .grid { @apply grid gap-2; }
+  .grid.two { @apply grid-cols-2; }
+  .field { @apply grid gap-1; }
+  .field label, .label { @apply text-[12px] font-semibold text-[#3d352c]; }
+  .label { @apply block mt-2 mb-1; }
+  .toggle { @apply grid grid-cols-[auto_1fr] gap-2 items-start p-2 border border-[#eadfce] rounded-[10px] bg-[#fcfaf5]; }
+  .toggle input { @apply mt-0.5 accent-[#b07a2b]; }
+  .toggle strong { @apply block text-[12px] text-[#3d352c]; }
+  .toggle span { @apply block mt-0.5 text-[11px] leading-[1.32] text-[#6c6255]; }
+  textarea, input, select { @apply w-full border border-[#d7ccb8] rounded-[10px] bg-[rgba(255,255,255,.92)] text-[#3f372f] outline-none; }
+  textarea, input { @apply py-2 px-2.5; }
+  textarea { @apply min-h-[76px] resize-y text-[11px] leading-[1.42] font-medium; font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace; }
+  #dnrList { min-height: 162px; }
+  input, select { @apply h-[32px] text-[12px] font-medium; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
+  select { @apply px-2.5; }
+  textarea:focus, input:focus, select:focus { @apply border-[#b8924f] shadow-[0_0_0_3px_rgba(184,146,79,.18)]; }
+  textarea:disabled, input:disabled, select:disabled { @apply opacity-60 cursor-not-allowed bg-[rgba(244,239,230,.92)]; }
+  .meta-row { @apply flex justify-between items-start gap-2 mt-1 flex-wrap text-[11px]; }
+  .meta-row span:first-child { @apply text-[#3d352c] font-bold whitespace-nowrap; }
+  .meta-row span:last-child { @apply flex-1 min-w-0 text-right; }
+  .status { @apply hidden items-center justify-center w-[14px] h-[14px] ml-1 rounded-full border border-[#f0b2b2] bg-[#ffe5e5] text-[#a51f1f] text-[9px] font-extrabold align-middle; }
+  .status.show { @apply inline-flex; }
+  .footer { @apply mt-2.5 pt-2 border-t border-[#eadfce] flex justify-between gap-2 items-center; }
+  .repo-link { @apply text-[11px] font-bold no-underline border border-[#e8d7b8] rounded-full py-1 px-2.5 bg-[rgba(255,250,241,.92)] text-[#8a5a12]; }
+  .repo-link:hover { @apply underline; }
+  .legacy { @apply mt-2 pt-2 border-t border-dashed border-[#e8dcc8]; }
+}

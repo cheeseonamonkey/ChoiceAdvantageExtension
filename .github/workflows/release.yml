@@ -13,9 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build popup CSS
+        run: npx --yes @tailwindcss/cli@4.2.2 -i options.tailwind.css -o options.css
+      - name: Verify generated CSS is committed
+        run: git diff --exit-code -- options.css
       - name: Build release zip
-        run: zip -r choiceadvantage-enhanced.zip . -x '.git/*' '.github/*' '.serena/*' 'logs/*'
+        run: zip -r choiceadvantage-enhanced.zip . -x '.git/*' '.github/*' '.serena/*' '.codex/*' 'logs/*' 'dist/*' 'options.tailwind.css' 'choiceadvantage-enhanced.zip'
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: choiceadvantage-enhanced.zip
+          make_latest: true
