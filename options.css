@@ -13,9 +13,6 @@
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
     --font-weight-extrabold: 800;
-    --radius-xl: 0.75rem;
-    --radius-2xl: 1rem;
-    --blur-sm: 8px;
     --default-transition-duration: 150ms;
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
@@ -264,7 +261,7 @@
     padding: calc(var(--spacing) * 0);
   }
   body {
-    width: 414px;
+    width: 428px;
     padding: 10px;
     font-size: 12px;
     --tw-leading: 1.35;

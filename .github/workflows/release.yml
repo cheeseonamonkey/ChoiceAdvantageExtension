@@ -21,7 +21,7 @@ jobs:
       - name: Verify generated CSS is committed
         run: git diff --exit-code -- options.css
       - name: Build release zip
-        run: zip -r choiceadvantage-enhanced.zip . -x '.git/*' '.github/*' '.serena/*' '.codex/*' 'logs/*' 'dist/*' 'options.tailwind.css' 'choiceadvantage-enhanced.zip'
+        run: ./scripts/package-extension.sh choiceadvantage-enhanced.zip
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:

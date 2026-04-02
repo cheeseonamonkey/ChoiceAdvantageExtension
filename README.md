@@ -11,10 +11,10 @@ Minimal CHOICEADVANTAGE productivity/performance extension.
 - Adds guest-name highlighting, Escape-to-Back, row/column hide, username memory, and small action popups.
 
 ## Install
-1. If you have a ZIP, extract it. If you already have the folder, skip that.
-2. Open `chrome://extensions/` and enable Developer mode.
-3. Load unpacked and select this folder.
-4. Open the popup, keep the defaults unless a page breaks, and reload after changes.
+1. Fastest non-dev-mode install: publish the zip to the Chrome Web Store or Edge Add-ons and install from there.
+2. For local testing only, extract the ZIP, open `chrome://extensions/`, enable Developer mode, and load unpacked.
+3. Open the popup, keep the defaults unless a page breaks, and reload after changes.
+4. If you need a managed-device install path, use a signed CRX plus enterprise policy.
 
 ## Use
 - `Custom blocked hosts` is a list of extra sites to skip.
@@ -31,8 +31,9 @@ Minimal CHOICEADVANTAGE productivity/performance extension.
 - `options.html` / `options.js` - popup UI and storage
 
 ## Automation
-- CI validates JS syntax and `manifest.json`, then uploads a zip artifact.
-- Release builds the zip and publishes it from `v*` tags.
+- CI validates JS syntax and `manifest.json`, then rebuilds `options.css` and uploads a zip artifact.
+- `Dist` builds a clean extension zip on pushes to `main`/`master`.
+- Release rebuilds `options.css`, publishes the zip from `v*` tags, and marks the release latest.
 
 ## Troubleshooting
 - Reload the extension at `chrome://extensions/` if it seems inactive.

@@ -18,9 +18,7 @@ jobs:
       - name: Verify generated CSS is committed
         run: git diff --exit-code -- options.css
       - name: Package extension
-        run: |
-          mkdir -p dist
-          zip -r dist/choiceadvantage-enhanced.zip . -x '.git/*' '.github/*' '.serena/*' '.codex/*' 'logs/*' 'dist/*' 'options.tailwind.css' 'choiceadvantage-enhanced.zip'
+        run: ./scripts/package-extension.sh dist/choiceadvantage-enhanced.zip
       - uses: actions/upload-artifact@v4
         with:
           name: choiceadvantage-enhanced-dist

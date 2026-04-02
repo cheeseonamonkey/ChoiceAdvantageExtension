@@ -16,6 +16,9 @@
     removeTelemetryHints: true,
     lazyLoadNoncriticalImages: false,
     hideNoncriticalImages: false,
+    hideTopBar: true,
+    hideResourceCenter: true,
+    fontMode: 'default',
     animationMode: 'reduced',
     enableNavPrefetch: true,
     navPrefetchLabels: 'arrivals\ndepartures\nin-house',
@@ -95,6 +98,7 @@
   const ERROR_WRITER = 'errormessagewriter.js';
   const STALE_PRELOAD = 'sansation-light-webfont.woff';
   const TELEMETRY_HINT_HOSTS = ['content.nps.skytouchnps.com', 's.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com'];
+  const UI_FIX_STYLE_ID = 'ca-enhanced-ui-fixes';
   const HEAD_HINTS = [
     { rel: 'dns-prefetch', href: '//skytouchcommunity.force.com' },
     { rel: 'preconnect', href: 'https://skytouchcommunity.force.com', crossorigin: 'anonymous' },
@@ -107,7 +111,7 @@
   const PAGE_CONFIG_EVENT = 'ca-enhanced-page-config';
   const PAGE_ACTION_EVENT = 'ca-enhanced-auto-action';
   const seenScripts = new Set();
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, headHintsLoadBound: false, googlePopupGuardTimer: 0, pageScriptInjected: false, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [], usernameOptions: null, isUserLoginPage: null, loginPageCheckTime: 0, loginPageTitle: '' };
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, headHintsLoadBound: false, uiFixesLoadBound: false, googlePopupGuardTimer: 0, pageScriptInjected: false, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [], usernameOptions: null, lastFormTarget: null, isUserLoginPage: null, loginPageCheckTime: 0, loginPageTitle: '' };
 
   const safe = (label, fn) => {
     try {
@@ -158,6 +162,7 @@
   const settingText = (key, fallback) => cleanText(state.settings[key]) || fallback;
   const parseSimpleList = value => String(value || '').split('\n').flatMap(line => line.split(',')).map(part => cleanText(part).toLowerCase()).filter(part => part.length >= 3);
   const escapeRegExp = value => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const FAKE_DATA = globalThis.CAEnhancedFakeData || {};
   const parseRememberedUsernames = value => {
     const seen = new Set();
     return String(value || '').split('\n').map(cleanText).filter(Boolean).filter(username => {
@@ -184,11 +189,95 @@
   const isTelemetryHint = value => TELEMETRY_HINT_HOSTS.some(host => normalizeSrc(value).includes(`://${host}`));
   const isNoncriticalImage = value => NONCRITICAL_IMAGE_PATTERNS.some(pattern => normalizeSrc(value).includes(pattern));
   const headFixesEnabled = () => state.settings.fixMixedContentFavicon || state.settings.suppressWelcomeImage404 || state.settings.dedupeErrorMessageWriter || state.settings.removeUnusedFontPreload || state.settings.removeTelemetryHints || state.settings.lazyLoadNoncriticalImages || state.settings.hideNoncriticalImages;
+  const pageUiFixesEnabled = () => state.settings.hideTopBar || state.settings.hideResourceCenter || state.settings.fontMode !== 'default';
+  const isEditableField = node => node && !node.disabled && !node.readOnly && /^(INPUT|TEXTAREA|SELECT)$/.test(node.tagName);
 
   function hintLazyLoad(node) {
     node.loading = 'lazy';
     node.decoding = 'async';
     if ('fetchPriority' in node) node.fetchPriority = 'low';
+  }
+
+  function setFieldValue(node, value) {
+    if (!node || value == null) return false;
+    const candidates = Array.isArray(value) ? value.map(v => String(v)) : [String(value)];
+    if (node.tagName === 'SELECT') {
+      const option = Array.from(node.options).find(opt => [opt.value, opt.textContent, opt.label].some(text => candidates.some(candidate => cleanText(text).toLowerCase() === candidate.toLowerCase())));
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
+      if (option && setter) setter.call(node, option.value);
+      else if (option) node.value = option.value;
+      else return false;
+    } else {
+      const proto = node.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+      if (setter) setter.call(node, candidates[0]);
+      else node.value = candidates[0];
+    }
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+    node.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+
+  function fillFakeData(kind = 'fakeProfile') {
+    const active = document.activeElement;
+    const target = state.lastFormTarget && document.contains(state.lastFormTarget) ? state.lastFormTarget : active;
+    const form = target && target.tagName === 'FORM' ? target : target && target.form || target && target.closest && target.closest('form');
+    if (!form) return false;
+    const profile = FAKE_DATA.createFakeProfile ? FAKE_DATA.createFakeProfile() : null;
+    let filled = 0;
+    Array.from(form.querySelectorAll('input, textarea, select')).forEach(node => {
+      if (!isEditableField(node)) return;
+      if (!FAKE_DATA.shouldFillField || !FAKE_DATA.shouldFillField(node, kind)) return;
+      const value = FAKE_DATA.getFakeValue ? FAKE_DATA.getFakeValue(node, profile, kind) : null;
+      if (value == null) return;
+      if (setFieldValue(node, value)) filled += 1;
+    });
+    if (!filled) return false;
+    const summary = profile ? `${profile.fullName}` : 'fake data';
+    showAutoAction(kind === 'fakeProfile' ? `Filled fake profile for ${summary}` : kind === 'fakeName' ? `Filled fake name for ${summary}` : kind === 'fakeAddress' ? `Filled fake address for ${profile ? `${profile.city}, ${profile.state}` : 'the form'}` : `Filled fake phone ${profile ? profile.phone : 'the form'}`);
+    return true;
+  }
+
+  function rememberFormTarget(target) {
+    if (!target || !target.closest) return;
+    const form = target.closest('form');
+    if (form) state.lastFormTarget = form;
+  }
+
+  function buildUiFixCss() {
+    const rules = [];
+    if (state.settings.hideTopBar) rules.push('.CHI_TopBar{display:none !important;}');
+    if (state.settings.hideResourceCenter) rules.push('[aria-label="Open Resource Center"]{display:none !important;}');
+    if (state.settings.fontMode === 'system' || state.settings.fontMode === 'compact') {
+      rules.push('body,button,input,select,textarea,table{font-family:"Segoe UI Variable","Segoe UI",Arial,sans-serif !important;}');
+      if (state.settings.fontMode === 'compact') rules.push('body{font-size:13px !important;line-height:1.34 !important;}');
+    } else if (state.settings.fontMode === 'serif') {
+      rules.push('body,button,input,select,textarea,table{font-family:Georgia,"Times New Roman",serif !important;}', 'body{font-size:14px !important;line-height:1.36 !important;}');
+    }
+    return rules.join('');
+  }
+
+  function ensureUiFixes() {
+    const head = document.head;
+    if (!head) {
+      if (!state.uiFixesLoadBound) {
+        state.uiFixesLoadBound = true;
+        window.addEventListener('DOMContentLoaded', ensureUiFixes, { once: true });
+      }
+      return;
+    }
+    const css = buildUiFixCss();
+    let style = head.querySelector(`style[data-ca-enhanced="${UI_FIX_STYLE_ID}"]`);
+    if (!css) {
+      if (style) style.remove();
+      return;
+    }
+    if (!style) {
+      style = document.createElement('style');
+      style.dataset.caEnhanced = UI_FIX_STYLE_ID;
+      head.appendChild(style);
+    }
+    style.textContent = css;
   }
 
   function injectPageScript() {
@@ -218,6 +307,7 @@
   function sanitizeNode(node) {
     if (!node || node.nodeType !== 1) return;
     if (node.matches('head') || node === document.documentElement) ensureHeadHints();
+    if (node.matches('html, body') || node === document.documentElement) ensureUiFixes();
     if (state.settings.fixMixedContentFavicon && node.matches('link[rel*="icon"][href]') && isBrokenFavicon(node.href)) node.href = EMPTY_ICON;
     if (state.settings.removeUnusedFontPreload && node.matches('link[rel="preload"][href]') && isStalePreload(node.href)) node.remove();
     if (state.settings.removeTelemetryHints && node.matches('link[href][rel]') && /\b(preconnect|dns-prefetch|prefetch|preload|modulepreload)\b/i.test(node.rel) && isTelemetryHint(node.href)) node.remove();
@@ -233,6 +323,8 @@
       node.style.maxWidth = '1px';
       node.style.opacity = '0';
     }
+    if (state.settings.hideTopBar && node.matches('.CHI_TopBar')) node.style.display = 'none';
+    if (state.settings.hideResourceCenter && node.matches('[aria-label="Open Resource Center"]')) node.style.display = 'none';
     if (node.matches('script[src]')) sanitizeScript(node);
     node.querySelectorAll?.('link[rel*="icon"][href], link[rel="preload"][href], img[src], script[src]').forEach(child => sanitizeNode(child));
   }
@@ -345,7 +437,7 @@
   function initHeadFixes() {
     if (state.headObserver) state.headObserver.disconnect();
     clearTimeout(state.headObserverStopTimer);
-    if (headFixesEnabled()) {
+    if (headFixesEnabled() || pageUiFixesEnabled()) {
       sanitizeNode(document.documentElement);
       state.headObserver = new MutationObserver(mutations => mutations.forEach(({ addedNodes, target }) => {
         addedNodes.forEach(node => sanitizeNode(node));
@@ -450,6 +542,7 @@
     state.dnrRules = compileRules(state.settings.dnrList || '');
     state.navPrefetchLabels = parseSimpleList(state.settings.navPrefetchLabels || '');
     syncPageConfig();
+    ensureUiFixes();
     syncAnimationMode();
     initHeadFixes();
     if (state.tooltip) state.tooltip.textContent = settingText('dnrTooltipText', DEFAULTS.dnrTooltipText);
@@ -637,10 +730,16 @@
     window.addEventListener(PAGE_ACTION_EVENT, e => safe('Auto action relay failed', () => {
       if (e.detail && e.detail.message) showAutoAction(e.detail.message);
     }));
+    document.addEventListener('contextmenu', e => safe('Form target tracking failed', () => rememberFormTarget(e.target)), true);
+    document.addEventListener('focusin', e => safe('Form target tracking failed', () => rememberFormTarget(e.target)), true);
     chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => safe('Message action failed', () => {
       if (!msg) return;
       if (msg.action === 'hideColumn') hideSelectedColumn();
       if (msg.action === 'hideRow') hideSelectedRow();
+      if (msg.action === 'fakeProfile') fillFakeData('fakeProfile');
+      if (msg.action === 'fakeName') fillFakeData('fakeName');
+      if (msg.action === 'fakeAddress') fillFakeData('fakeAddress');
+      if (msg.action === 'fakePhone') fillFakeData('fakePhone');
       if (msg.action === 'countNavPrefetchMatches') sendResponse({ navPrefetchMatches: Array.from(document.querySelectorAll('a[href]')).filter(link => matchesNavPrefetchLabel(cleanText(link.textContent).toLowerCase(), parseSimpleList(msg.navPrefetchLabels || state.settings.navPrefetchLabels))).length });
     }));
   }
@@ -682,13 +781,26 @@
     }));
   }
 
+  function initFakeDataShortcuts() {
+    document.addEventListener('keydown', e => safe('Fake data shortcut failed', () => {
+      if (!e.ctrlKey || e.code !== 'Space') return;
+      const active = document.activeElement;
+      if (!isEditableField(active)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      fillFakeData('fakeProfile');
+    }), true);
+  }
+
   function init() {
     safe('Head hint init failed', ensureHeadHints);
+    safe('UI fix init failed', ensureUiFixes);
     safe('DNR UI init failed', initDNRUI);
     safe('Escape key init failed', initEscapeKey);
     safe('Table tracking init failed', initTableTracking);
     safe('Remember username init failed', initRememberUsername);
     safe('Nav prefetch init failed', initNavPrefetch);
+    safe('Fake data shortcut init failed', initFakeDataShortcuts);
     safe('Message listener init failed', initMessages);
     safe('Storage sync init failed', initStorageSync);
   }

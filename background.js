@@ -9,7 +9,7 @@ const DEFAULTS = {
   hideColumnMenuText: 'Hide Column',
   hideRowMenuText: 'Hide Row'
 };
-const MENU_IDS = { column: 'hideColumn', row: 'hideRow' };
+const MENU_IDS = { column: 'hideColumn', row: 'hideRow', choiceAdvantage: 'choiceAdvantage', fakeProfile: 'fakeProfile', fakeName: 'fakeName', fakeAddress: 'fakeAddress', fakePhone: 'fakePhone' };
 const RULE_IDS = { blockPendo: 1, blockTelemetry: 2, blockAkamai: 3 };
 const CUSTOM_RULE_START = 100;
 const MAX_CUSTOM_RULES = 50;
@@ -90,6 +90,19 @@ function syncContextMenu(settings) {
       console.error('[CA Enhanced] Context menu reset failed:', chrome.runtime.lastError);
       return;
     }
+    chrome.contextMenus.create({ id: MENU_IDS.choiceAdvantage, title: 'ChoiceAdvantage', contexts: ['editable'] }, () => {
+      if (chrome.runtime.lastError) console.error('[CA Enhanced] Context menu creation failed:', chrome.runtime.lastError);
+    });
+    [
+      { id: MENU_IDS.fakeProfile, title: 'Fill fake profile' },
+      { id: MENU_IDS.fakeName, title: 'Fill fake name' },
+      { id: MENU_IDS.fakeAddress, title: 'Fill fake address' },
+      { id: MENU_IDS.fakePhone, title: 'Fill fake phone' }
+    ].forEach(item => chrome.contextMenus.create({ ...item, parentId: MENU_IDS.choiceAdvantage, contexts: ['editable'] }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('[CA Enhanced] Context menu creation failed:', chrome.runtime.lastError);
+      }
+    }));
     [
       settings.enableHideColumn && { id: MENU_IDS.column, title: settings.hideColumnMenuText || DEFAULTS.hideColumnMenuText },
       settings.enableHideRow && { id: MENU_IDS.row, title: settings.hideRowMenuText || DEFAULTS.hideRowMenuText }

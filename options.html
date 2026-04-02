@@ -153,6 +153,16 @@
             <input type="checkbox" id="removeTelemetryHints" checked>
             <div><strong>Remove telemetry hints</strong><span>Strip resource hints pointing at blocked telemetry hosts.</span></div>
           </label>
+          <div class="grid two">
+            <label class="toggle" title="Hide the CHI top bar to free up more room.">
+              <input type="checkbox" id="hideTopBar" checked>
+              <div><strong>Hide top bar</strong><span>Hide the CHI top bar.</span></div>
+            </label>
+            <label class="toggle" title="Hide the Resource Center launcher button.">
+              <input type="checkbox" id="hideResourceCenter" checked>
+              <div><strong>Hide Resource Center</strong><span>Hide the launcher button.</span></div>
+            </label>
+          </div>
         </div>
 
         <div class="grid two">
@@ -169,6 +179,18 @@
               <input type="checkbox" id="enableNavPrefetch" checked>
               <div><strong>Prefetch nav targets <span class="status" id="enableNavPrefetchStatus" hidden>!</span></strong><span>Prefetch links whose text matches the labels below.</span></div>
             </label>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div class="field">
+            <label for="fontMode" title="Use system fonts when page fonts are noisy or oversized.">Font mode</label>
+            <select id="fontMode">
+              <option value="default" selected>Default</option>
+              <option value="system">System, slightly larger</option>
+              <option value="compact">Compact, more legible</option>
+              <option value="serif">Serif, quiet</option>
+            </select>
           </div>
         </div>
 

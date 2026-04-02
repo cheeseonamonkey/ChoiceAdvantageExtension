@@ -4,7 +4,7 @@
 @layer base {
   * { @apply m-0 p-0 box-border; }
   body {
-    @apply w-[414px] p-[10px] text-[12px] font-medium leading-[1.35];
+    @apply w-[428px] p-[10px] text-[12px] font-medium leading-[1.35];
     font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     background: linear-gradient(180deg, #fffdf8 0%, #f5efe7 100%);
     color: #4b4237;
