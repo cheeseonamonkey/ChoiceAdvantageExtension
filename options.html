@@ -200,8 +200,12 @@
           <span id="navPrefetchCount">0 labels</span>
           <span id="navPrefetchMatches">Open a ChoiceADVANTAGE page to preview matches.</span>
         </div>
+        <div class="meta-row">
+          <span class="note">Legacy compatibility controls stay collapsed unless you explicitly enable them.</span>
+          <button class="repo-link" id="toggleLegacy" type="button" aria-controls="legacySection" aria-expanded="false">Show legacy controls</button>
+        </div>
 
-        <div class="legacy" hidden aria-hidden="true">
+        <div class="legacy" id="legacySection" hidden aria-hidden="true">
           <div class="section-title">Legacy compatibility</div>
           <label class="toggle" title="Apply a configurable timeout to matching page fetch and async XHR requests.">
             <input type="checkbox" id="enableAbortRequests">

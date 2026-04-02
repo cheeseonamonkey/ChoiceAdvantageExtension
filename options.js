@@ -99,6 +99,32 @@ const statusFields = {
   navPrefetchLabels: $('#navPrefetchLabelsStatus'),
   dnrList: $('#dnrListStatus')
 };
+const $legacyToggle = $('#toggleLegacy');
+const $legacySection = $('#legacySection');
+const BOOLEAN_FIELDS = [
+  'enableBlockPendo',
+  'enableBlockTelemetry',
+  'enableBlockAkamai',
+  'fixMixedContentFavicon',
+  'suppressWelcomeImage404',
+  'dedupeErrorMessageWriter',
+  'guardHideGooglePopup',
+  'removeUnusedFontPreload',
+  'removeTelemetryHints',
+  'lazyLoadNoncriticalImages',
+  'hideNoncriticalImages',
+  'hideTopBar',
+  'hideResourceCenter',
+  'enableNavPrefetch',
+  'enableAbortRequests',
+  'enableCacheControl',
+  'enableDNR',
+  'enableEscapeKey',
+  'enableHideColumn',
+  'enableHideRow',
+  'enableRememberUsername'
+];
+const NUMERIC_FIELDS = ['abortRequestTimeoutMs', 'cacheControlMaxAgeSeconds'];
 
 const RESERVED_HOSTS = new Set(['choiceadvantage.com', 'remoteaccess.choiceadvantage.com', 'content.nps.skytouchnps.com', 's.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com']);
 const MAX_CUSTOM_HOSTS = 50;
@@ -161,6 +187,16 @@ function scheduleNavPrefetchPreview() {
   clearTimeout(previewTimer);
   if (activeTab !== 'network') return;
   previewTimer = setTimeout(updateNavPrefetchPreview, 40);
+}
+
+function toggleLegacyControls(forceState) {
+  if (!$legacyToggle.length || !$legacySection.length) return;
+  const currentlyHidden = $legacySection.prop('hidden');
+  const shouldShow = typeof forceState === 'boolean' ? forceState : !currentlyHidden;
+  const sectionEl = $legacySection[0];
+  $legacySection.prop('hidden', !shouldShow).attr('aria-hidden', !shouldShow);
+  $legacyToggle.attr('aria-expanded', shouldShow).text(shouldShow ? 'Hide legacy controls' : 'Show legacy controls');
+  if (shouldShow && sectionEl && sectionEl.scrollIntoView) sectionEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function refreshStatuses() {
@@ -261,46 +297,33 @@ function scheduleSave(delay) {
 }
 
 function readForm() {
-  const rememberedUsernames = parseRememberedUsernames($fields.rememberedUsernames.val() || '').join('\n');
-  return {
-    dnrList: $fields.dnrList.val() || '',
-    enableBlockPendo: $fields.enableBlockPendo.prop('checked'),
-    enableBlockTelemetry: $fields.enableBlockTelemetry.prop('checked'),
-    enableBlockAkamai: $fields.enableBlockAkamai.prop('checked'),
-    blockedHosts: $fields.blockedHosts.val() || '',
-    fixMixedContentFavicon: $fields.fixMixedContentFavicon.prop('checked'),
-    suppressWelcomeImage404: $fields.suppressWelcomeImage404.prop('checked'),
-    dedupeErrorMessageWriter: $fields.dedupeErrorMessageWriter.prop('checked'),
-    guardHideGooglePopup: $fields.guardHideGooglePopup.prop('checked'),
-    removeUnusedFontPreload: $fields.removeUnusedFontPreload.prop('checked'),
-    removeTelemetryHints: $fields.removeTelemetryHints.prop('checked'),
-    lazyLoadNoncriticalImages: $fields.lazyLoadNoncriticalImages.prop('checked'),
-    hideNoncriticalImages: $fields.hideNoncriticalImages.prop('checked'),
-    hideTopBar: $fields.hideTopBar.prop('checked'),
-    hideResourceCenter: $fields.hideResourceCenter.prop('checked'),
+  const getText = key => $fields[key].val() || DEFAULTS[key] || '';
+  const rememberedUsernames = parseRememberedUsernames($fields.rememberedUsernames.val() || '');
+  const rememberedUsernamesText = rememberedUsernames.join('\n');
+  const values = {
+    dnrList: getText('dnrList'),
+    blockedHosts: getText('blockedHosts'),
+    navPrefetchLabels: getText('navPrefetchLabels'),
+    abortRequestPatterns: getText('abortRequestPatterns'),
+    cacheControlPatterns: getText('cacheControlPatterns'),
+    rememberedUsernames: rememberedUsernamesText,
+    rememberedUsername: getPrimaryRememberedUsername(rememberedUsernamesText),
+    dnrTooltipText: getText('dnrTooltipText') || DEFAULTS.dnrTooltipText,
+    dnrHighlightColor: getText('dnrHighlightColor') || DEFAULTS.dnrHighlightColor,
+    backLinkText: getText('backLinkText') || DEFAULTS.backLinkText,
+    hideColumnMenuText: getText('hideColumnMenuText') || DEFAULTS.hideColumnMenuText,
+    hideRowMenuText: getText('hideRowMenuText') || DEFAULTS.hideRowMenuText,
     fontMode: $fields.fontMode.val() || DEFAULTS.fontMode,
-    animationMode: $fields.animationMode.val() || DEFAULTS.animationMode,
-    enableNavPrefetch: $fields.enableNavPrefetch.prop('checked'),
-    navPrefetchLabels: $fields.navPrefetchLabels.val() || '',
-    enableAbortRequests: $fields.enableAbortRequests.prop('checked'),
-    abortRequestTimeoutMs: Math.max(1, parseInt($fields.abortRequestTimeoutMs.val() || DEFAULTS.abortRequestTimeoutMs, 10) || DEFAULTS.abortRequestTimeoutMs),
-    abortRequestPatterns: $fields.abortRequestPatterns.val() || '',
-    enableCacheControl: $fields.enableCacheControl.prop('checked'),
-    cacheControlMaxAgeSeconds: Math.max(1, parseInt($fields.cacheControlMaxAgeSeconds.val() || DEFAULTS.cacheControlMaxAgeSeconds, 10) || DEFAULTS.cacheControlMaxAgeSeconds),
-    cacheControlPatterns: $fields.cacheControlPatterns.val() || '',
-    enableDNR: $fields.enableDNR.prop('checked'),
-    enableEscapeKey: $fields.enableEscapeKey.prop('checked'),
-    enableHideColumn: $fields.enableHideColumn.prop('checked'),
-    enableHideRow: $fields.enableHideRow.prop('checked'),
-    enableRememberUsername: $fields.enableRememberUsername.prop('checked'),
-    rememberedUsernames,
-    rememberedUsername: getPrimaryRememberedUsername(rememberedUsernames),
-    dnrTooltipText: $fields.dnrTooltipText.val() || DEFAULTS.dnrTooltipText,
-    dnrHighlightColor: $fields.dnrHighlightColor.val() || DEFAULTS.dnrHighlightColor,
-    backLinkText: $fields.backLinkText.val() || DEFAULTS.backLinkText,
-    hideColumnMenuText: $fields.hideColumnMenuText.val() || DEFAULTS.hideColumnMenuText,
-    hideRowMenuText: $fields.hideRowMenuText.val() || DEFAULTS.hideRowMenuText
+    animationMode: $fields.animationMode.val() || DEFAULTS.animationMode
   };
+  BOOLEAN_FIELDS.forEach(key => {
+    if ($fields[key] && $fields[key].length) values[key] = $fields[key].prop('checked');
+  });
+  NUMERIC_FIELDS.forEach(key => {
+    const fallback = DEFAULTS[key] || 1;
+    values[key] = Math.max(1, parseInt($fields[key].val() || fallback, 10) || fallback);
+  });
+  return values;
 }
 
 function saveSettings() {
@@ -358,3 +381,5 @@ $tabs.on('keydown', function(e) {
 });
 
 Object.values($fields).forEach(bindField);
+$legacyToggle.on('click', () => toggleLegacyControls());
+toggleLegacyControls(false);

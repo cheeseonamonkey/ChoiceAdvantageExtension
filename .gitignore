@@ -1,3 +1,4 @@
 .serena/
 logs/
 .codex
+node_modules/
