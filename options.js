@@ -20,6 +20,11 @@ const $ui = {};
 let saveTimer = 0;
 let savedTimer = 0;
 let previewTimer = 0;
+const META_ROWS = {
+  dnrList: note => `<div class="meta-row"><span id="dnrCount">0 entries</span><span>${escapeHtml(note || '')}</span></div>`,
+  rememberedUsernames: note => `<div class="meta-row"><span id="rememberedCount">0 saved</span><span>${escapeHtml(note || '')}</span></div>`,
+  navPrefetchLabels: () => '<div class="meta-row"><span id="navPrefetchCount">0 labels</span><span id="navPrefetchMatches">Open a ChoiceADVANTAGE page to preview matches.</span></div>'
+};
 
 const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const setText = ($node, value) => $node && $node.length && $node.text(value);
@@ -47,17 +52,11 @@ function renderField(field) {
       </div>
     </label>`;
   }
-  const counts = field.key === 'dnrList'
-    ? `<div class="meta-row"><span id="dnrCount">0 entries</span><span>${escapeHtml(field.note || '')}</span></div>`
-    : field.key === 'rememberedUsernames'
-      ? `<div class="meta-row"><span id="rememberedCount">0 saved</span><span>${escapeHtml(field.note || '')}</span></div>`
-      : field.key === 'navPrefetchLabels'
-        ? `<div class="meta-row"><span id="navPrefetchCount">0 labels</span><span id="navPrefetchMatches">Open a ChoiceADVANTAGE page to preview matches.</span></div>`
-        : '';
+  const meta = META_ROWS[field.key]?.(field.note);
   return `<div class="field-shell field-shell--${field.type}">
     <label class="label" for="${field.key}">${escapeHtml(field.label)}${renderStatus(field)}</label>
     ${renderControl(field)}
-    ${counts || renderHint(field)}
+    ${meta || renderHint(field)}
   </div>`;
 }
 
@@ -94,17 +93,22 @@ function renderNavPrefetchPreview(message) {
   setText($ui.navPrefetchMatches, message);
 }
 
+function renderPreviewFallback(message) {
+  renderNavPrefetchPreview(message);
+  return message;
+}
+
 function updateNavPrefetchPreview() {
   const labels = splitLoose($fields.navPrefetchLabels.val()).filter(value => value.length >= 3);
   setCount($ui.navPrefetchCount, labels.length, 'label');
-  if (!$fields.enableNavPrefetch.prop('checked')) return renderNavPrefetchPreview('Enable nav prefetch to preview matches.');
-  if (!labels.length) return renderNavPrefetchPreview('Add labels to preview matches on the current page.');
-  if (!chrome.tabs || !chrome.tabs.query) return renderNavPrefetchPreview('Page preview unavailable here.');
+  if (!$fields.enableNavPrefetch.prop('checked')) return renderPreviewFallback('Enable nav prefetch to preview matches.');
+  if (!labels.length) return renderPreviewFallback('Add labels to preview matches on the current page.');
+  if (!chrome.tabs || !chrome.tabs.query) return renderPreviewFallback('Page preview unavailable here.');
   chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
     const tab = tabs && tabs[0];
-    if (chrome.runtime.lastError || !tab || !tab.id) return renderNavPrefetchPreview('Open a ChoiceADVANTAGE page to preview matches.');
+    if (chrome.runtime.lastError || !tab || !tab.id) return renderPreviewFallback('Open a ChoiceADVANTAGE page to preview matches.');
     chrome.tabs.sendMessage(tab.id, { action: 'countNavPrefetchMatches', navPrefetchLabels: labels.join('\n') }, response => {
-      if (chrome.runtime.lastError || !response || typeof response.navPrefetchMatches !== 'number') return renderNavPrefetchPreview('Open a ChoiceADVANTAGE page to preview matches.');
+      if (chrome.runtime.lastError || !response || typeof response.navPrefetchMatches !== 'number') return renderPreviewFallback('Open a ChoiceADVANTAGE page to preview matches.');
       const count = response.navPrefetchMatches;
       renderNavPrefetchPreview(`${count} matching ${count === 1 ? 'link' : 'links'} on this page.`);
     });
@@ -156,9 +160,10 @@ function refreshStatuses() {
   const rememberedCount = parseRememberedUsernames($fields.rememberedUsernames.val()).length;
   setText($ui.rememberedCount, `${rememberedCount} saved${rememberedCount >= MAX_REMEMBERED_USERNAMES ? ` · max ${MAX_REMEMBERED_USERNAMES}` : ''}`);
 
-  setStatus('enableAbortRequests', $fields.enableAbortRequests.prop('checked') ? (!validAbortPatterns.length ? 'Add at least one URL pattern.' : '') : (abortPatterns.length ? 'Disabled, so listed patterns will not apply.' : ''));
-  setStatus('enableCacheControl', $fields.enableCacheControl.prop('checked') ? (!validCachePatterns.length ? 'Add at least one URL pattern.' : '') : (validCachePatterns.length ? 'Disabled, so matching requests will not get cache hints.' : ''));
-  setStatus('enableNavPrefetch', $fields.enableNavPrefetch.prop('checked') ? (!validNavLabels.length ? 'Add at least one label.' : '') : (validNavLabels.length ? 'Disabled, so matching links will not prefetch.' : ''));
+  const getToggleStatus = (enabled, hasValid, emptyMessage, disabledMessage) => enabled ? (hasValid ? '' : emptyMessage) : (hasValid ? disabledMessage : '');
+  setStatus('enableAbortRequests', getToggleStatus($fields.enableAbortRequests.prop('checked'), !!validAbortPatterns.length, 'Add at least one URL pattern.', 'Disabled, so listed patterns will not apply.'));
+  setStatus('enableCacheControl', getToggleStatus($fields.enableCacheControl.prop('checked'), !!validCachePatterns.length, 'Add at least one URL pattern.', 'Disabled, so matching requests will not get cache hints.'));
+  setStatus('enableNavPrefetch', getToggleStatus($fields.enableNavPrefetch.prop('checked'), !!validNavLabels.length, 'Add at least one label.', 'Disabled, so matching links will not prefetch.'));
 
   scheduleNavPrefetchPreview();
 }
@@ -178,9 +183,11 @@ function readForm() {
   FIELDS.forEach(field => {
     const $field = $fields[field.key];
     if (!$field || !$field.length) return;
-    if (field.type === 'toggle') values[field.key] = $field.prop('checked');
-    else if (field.type === 'number') values[field.key] = Math.max(field.min || 1, parseInt($field.val() || field.defaultValue, 10) || field.defaultValue);
-    else values[field.key] = $field.val() || field.defaultValue || '';
+    values[field.key] = field.type === 'toggle'
+      ? $field.prop('checked')
+      : field.type === 'number'
+        ? Math.max(field.min || 1, parseInt($field.val() || field.defaultValue, 10) || field.defaultValue)
+        : $field.val() || field.defaultValue || '';
   });
   const rememberedUsernames = parseRememberedUsernames(values.rememberedUsernames || '').join('\n');
   values.rememberedUsernames = rememberedUsernames;
