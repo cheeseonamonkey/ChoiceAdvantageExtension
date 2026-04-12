@@ -3,4 +3,17 @@ set -euo pipefail
 
 out="${1:?usage: $0 output.zip}"
 mkdir -p "$(dirname "$out")"
-zip -r "$out" . -x '.git/*' '.github/*' '.serena/*' '.codex/*' 'logs/*' 'dist/*' 'options.tailwind.css' "$out"
+rm -f "$out"
+zip -r "$out" \
+  manifest.json \
+  background.js \
+  content.js \
+  settings.js \
+  page.js \
+  fake-data.js \
+  jquery.min.js \
+  options.html \
+  options.css \
+  icon16.png \
+  icon.png \
+  icon128.png
