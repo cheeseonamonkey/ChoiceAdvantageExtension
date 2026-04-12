@@ -22,10 +22,12 @@ jobs:
         run: npm run build:css
       - name: Verify generated CSS is committed
         run: git diff --exit-code -- options.css
+      - name: Set artifact name
+        run: echo "ARTIFACT=choiceadvantage-enhanced-v$(node -p "require('./manifest.json').version")-chromium.zip" >> "$GITHUB_ENV"
       - name: Build release zip
-        run: ./scripts/package-extension.sh choiceadvantage-enhanced.zip
+        run: ./scripts/package-extension.sh "$ARTIFACT"
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: choiceadvantage-enhanced.zip
+          files: ${{ env.ARTIFACT }}
           make_latest: true

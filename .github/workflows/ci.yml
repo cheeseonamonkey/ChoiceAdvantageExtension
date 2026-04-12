@@ -16,7 +16,7 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
       - name: Check JS syntax
-        run: node --check background.js && node --check fake-data.js && node --check content.js && node --check options.js && node --check page.js
+        run: node --check settings.js && node --check background.js && node --check fake-data.js && node --check content.js && node --check options.js && node --check page.js
       - name: Validate manifest
         run: node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('manifest.json','utf8')); if(m.manifest_version!==3) throw new Error('manifest_version must be 3'); if(!Array.isArray(m.content_scripts) || !m.content_scripts.length) throw new Error('missing content_scripts');"
 
@@ -34,9 +34,11 @@ jobs:
         run: npm run build:css
       - name: Verify generated CSS is committed
         run: git diff --exit-code -- options.css
+      - name: Set artifact name
+        run: echo "ARTIFACT=dist/choiceadvantage-enhanced-v$(node -p "require('./manifest.json').version")-chromium.zip" >> "$GITHUB_ENV"
       - name: Build extension zip
-        run: ./scripts/package-extension.sh choiceadvantage-enhanced.zip
+        run: ./scripts/package-extension.sh "$ARTIFACT"
       - uses: actions/upload-artifact@v4
         with:
-          name: choiceadvantage-enhanced
-          path: choiceadvantage-enhanced.zip
+          name: choiceadvantage-enhanced-chromium
+          path: ${{ env.ARTIFACT }}

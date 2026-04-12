@@ -1,164 +1,93 @@
-const DEFAULTS = {
-  dnrList: '',
-  enableBlockPendo: true,
-  enableBlockTelemetry: false,
-  enableBlockAkamai: false,
-  blockedHosts: '',
-  fixMixedContentFavicon: true,
-  suppressWelcomeImage404: true,
-  dedupeErrorMessageWriter: true,
-  guardHideGooglePopup: true,
-  removeUnusedFontPreload: true,
-  removeTelemetryHints: true,
-  lazyLoadNoncriticalImages: false,
-  hideNoncriticalImages: false,
-  hideTopBar: true,
-  hideResourceCenter: true,
-  fontMode: 'default',
-  animationMode: 'reduced',
-  enableNavPrefetch: true,
-  navPrefetchLabels: 'arrivals\ndepartures\nin-house',
-  enableAbortRequests: false,
-  abortRequestTimeoutMs: 3500,
-  abortRequestPatterns: '',
-  enableCacheControl: false,
-  cacheControlMaxAgeSeconds: 3600,
-  cacheControlPatterns: '',
-  enableDNR: true,
-  enableEscapeKey: true,
-  enableHideColumn: true,
-  enableHideRow: true,
-  enableRememberUsername: true,
-  rememberedUsername: '',
-  rememberedUsernames: '',
-  dnrTooltipText: 'Check DNR!',
-  dnrHighlightColor: '#dc3545',
-  backLinkText: 'Back',
-  hideColumnMenuText: 'Hide Column',
-  hideRowMenuText: 'Hide Row'
-};
+const {
+  DEFAULTS,
+  FIELDS,
+  SECTIONS,
+  RESERVED_HOSTS,
+  MAX_CUSTOM_HOSTS,
+  MAX_REMEMBERED_USERNAMES,
+  splitLoose,
+  normalizeHost,
+  parseRememberedUsernames,
+  getPrimaryRememberedUsername,
+  parseDnrEntries
+} = globalThis.CA_ENHANCED_SETTINGS;
 
-const $fields = {
-  dnrList: $('#dnrList'),
-  enableBlockPendo: $('#enableBlockPendo'),
-  enableBlockTelemetry: $('#enableBlockTelemetry'),
-  enableBlockAkamai: $('#enableBlockAkamai'),
-  blockedHosts: $('#blockedHosts'),
-  fixMixedContentFavicon: $('#fixMixedContentFavicon'),
-  suppressWelcomeImage404: $('#suppressWelcomeImage404'),
-  dedupeErrorMessageWriter: $('#dedupeErrorMessageWriter'),
-  guardHideGooglePopup: $('#guardHideGooglePopup'),
-  removeUnusedFontPreload: $('#removeUnusedFontPreload'),
-  removeTelemetryHints: $('#removeTelemetryHints'),
-  lazyLoadNoncriticalImages: $('#lazyLoadNoncriticalImages'),
-  hideNoncriticalImages: $('#hideNoncriticalImages'),
-  hideTopBar: $('#hideTopBar'),
-  hideResourceCenter: $('#hideResourceCenter'),
-  fontMode: $('#fontMode'),
-  animationMode: $('#animationMode'),
-  enableNavPrefetch: $('#enableNavPrefetch'),
-  navPrefetchLabels: $('#navPrefetchLabels'),
-  enableAbortRequests: $('#enableAbortRequests'),
-  abortRequestTimeoutMs: $('#abortRequestTimeoutMs'),
-  abortRequestPatterns: $('#abortRequestPatterns'),
-  enableCacheControl: $('#enableCacheControl'),
-  cacheControlMaxAgeSeconds: $('#cacheControlMaxAgeSeconds'),
-  cacheControlPatterns: $('#cacheControlPatterns'),
-  enableDNR: $('#enableDNR'),
-  enableEscapeKey: $('#enableEscapeKey'),
-  enableHideColumn: $('#enableHideColumn'),
-  enableHideRow: $('#enableHideRow'),
-  enableRememberUsername: $('#enableRememberUsername'),
-  rememberedUsernames: $('#rememberedUsernames'),
-  dnrTooltipText: $('#dnrTooltipText'),
-  dnrHighlightColor: $('#dnrHighlightColor'),
-  backLinkText: $('#backLinkText'),
-  hideColumnMenuText: $('#hideColumnMenuText'),
-  hideRowMenuText: $('#hideRowMenuText')
-};
-
-const $ui = {
-  saved: $('#saved'),
-  dnrCount: $('#dnrCount'),
-  rememberedCount: $('#rememberedCount'),
-  navPrefetchCount: $('#navPrefetchCount'),
-  navPrefetchMatches: $('#navPrefetchMatches')
-};
-
-const $tabs = $('[data-tab-button]');
-const $panels = $('[data-tab-panel]');
-const statusFields = {
-  enableAbortRequests: $('#enableAbortRequestsStatus'),
-  enableCacheControl: $('#enableCacheControlStatus'),
-  enableNavPrefetch: $('#enableNavPrefetchStatus'),
-  blockedHosts: $('#blockedHostsStatus'),
-  abortRequestTimeoutMs: $('#abortRequestTimeoutMsStatus'),
-  abortRequestPatterns: $('#abortRequestPatternsStatus'),
-  cacheControlMaxAgeSeconds: $('#cacheControlMaxAgeSecondsStatus'),
-  cacheControlPatterns: $('#cacheControlPatternsStatus'),
-  navPrefetchLabels: $('#navPrefetchLabelsStatus'),
-  dnrList: $('#dnrListStatus')
-};
-const $legacyToggle = $('#toggleLegacy');
-const $legacySection = $('#legacySection');
-const BOOLEAN_FIELDS = [
-  'enableBlockPendo',
-  'enableBlockTelemetry',
-  'enableBlockAkamai',
-  'fixMixedContentFavicon',
-  'suppressWelcomeImage404',
-  'dedupeErrorMessageWriter',
-  'guardHideGooglePopup',
-  'removeUnusedFontPreload',
-  'removeTelemetryHints',
-  'lazyLoadNoncriticalImages',
-  'hideNoncriticalImages',
-  'hideTopBar',
-  'hideResourceCenter',
-  'enableNavPrefetch',
-  'enableAbortRequests',
-  'enableCacheControl',
-  'enableDNR',
-  'enableEscapeKey',
-  'enableHideColumn',
-  'enableHideRow',
-  'enableRememberUsername'
-];
-const NUMERIC_FIELDS = ['abortRequestTimeoutMs', 'cacheControlMaxAgeSeconds'];
-
-const RESERVED_HOSTS = new Set(['choiceadvantage.com', 'remoteaccess.choiceadvantage.com', 'content.nps.skytouchnps.com', 's.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com']);
-const MAX_CUSTOM_HOSTS = 50;
-const MAX_REMEMBERED_USERNAMES = 20;
+const $root = $('#settings');
+const $saved = $('#saved');
+const $fields = {};
+const $status = {};
+const $ui = {};
 let saveTimer = 0;
 let savedTimer = 0;
 let previewTimer = 0;
-let activeTab = 'main';
 
+const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const setText = ($node, value) => $node && $node.length && $node.text(value);
-const splitLoose = value => String(value || '').split('\n').flatMap(line => line.split(',')).map(part => part.replace(/#.*/, '').trim()).filter(Boolean);
-const splitLines = value => String(value || '').split('\n').map(line => line.replace(/#.*/, '').trim()).filter(Boolean);
-const normalizeHost = host => String(host || '').trim().replace(/#.*/, '').replace(/[,\s]+$/, '').toLowerCase().replace(/^\*\./, '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+const setCount = ($node, count, singular, plural = `${singular}s`) => setText($node, `${count} ${count === 1 ? singular : plural}`);
+const renderStatus = field => field.status ? ` <span class="status" id="${field.key}Status" hidden>!</span>` : '';
+const renderHint = field => field.note ? `<div class="field-note">${escapeHtml(field.note)}</div>` : '';
 
-function parseRememberedUsernames(value) {
-  const seen = new Set();
-  return splitLines(value).filter(username => {
-    const key = username.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, MAX_REMEMBERED_USERNAMES);
+function renderControl(field) {
+  const attrs = [`id="${field.key}"`, field.title ? `title="${escapeHtml(field.title)}"` : ''];
+  if (field.dependsOn) attrs.push(`data-depends-on="${field.dependsOn}"`);
+  if (field.type === 'textarea') return `<textarea ${attrs.join(' ')} placeholder="${escapeHtml(field.placeholder || '')}"></textarea>`;
+  if (field.type === 'select') return `<select ${attrs.join(' ')}>${field.options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('')}</select>`;
+  if (field.type === 'number') return `<input ${attrs.join(' ')} type="number" min="${field.min || 1}" step="${field.step || 1}">`;
+  if (field.type === 'color') return `<input ${attrs.join(' ')} type="color">`;
+  return `<input ${attrs.join(' ')} type="text" placeholder="${escapeHtml(field.placeholder || '')}">`;
 }
 
-const getPrimaryRememberedUsername = value => parseRememberedUsernames(value)[0] || '';
-
-function setStatus(field, message) {
-  const $status = statusFields[field];
-  if (!$status || !$status.length) return;
-  $status.prop('hidden', !message).toggleClass('show', !!message).attr('title', message || '');
+function renderField(field) {
+  if (field.type === 'toggle') {
+    return `<label class="toggle" title="${escapeHtml(field.title || '')}">
+      <input type="checkbox" id="${field.key}">
+      <div>
+        <strong>${escapeHtml(field.label)}${renderStatus(field)}</strong>
+        <span>${escapeHtml(field.description || '')}</span>
+      </div>
+    </label>`;
+  }
+  const counts = field.key === 'dnrList'
+    ? `<div class="meta-row"><span id="dnrCount">0 entries</span><span>${escapeHtml(field.note || '')}</span></div>`
+    : field.key === 'rememberedUsernames'
+      ? `<div class="meta-row"><span id="rememberedCount">0 saved</span><span>${escapeHtml(field.note || '')}</span></div>`
+      : field.key === 'navPrefetchLabels'
+        ? `<div class="meta-row"><span id="navPrefetchCount">0 labels</span><span id="navPrefetchMatches">Open a ChoiceADVANTAGE page to preview matches.</span></div>`
+        : '';
+  return `<div class="field-shell field-shell--${field.type}">
+    <label class="label" for="${field.key}">${escapeHtml(field.label)}${renderStatus(field)}</label>
+    ${renderControl(field)}
+    ${counts || renderHint(field)}
+  </div>`;
 }
 
-function setCount($node, count, singular, plural = `${singular}s`) {
-  setText($node, `${count} ${count === 1 ? singular : plural}`);
+function renderSection(section) {
+  const fields = FIELDS.filter(field => field.section === section.key);
+  return `<details class="group" ${section.open ? 'open' : ''}>
+    <summary>
+      <span>${escapeHtml(section.title)}</span>
+      <span class="group-note">${escapeHtml(section.note || '')}</span>
+    </summary>
+    <div class="group-body">
+      ${fields.map(renderField).join('')}
+    </div>
+  </details>`;
+}
+
+function mountForm() {
+  $root.html(SECTIONS.map(renderSection).join(''));
+  FIELDS.forEach(field => { $fields[field.key] = $(`#${field.key}`); });
+  FIELDS.filter(field => field.status).forEach(field => { $status[field.key] = $(`#${field.key}Status`); });
+  $ui.dnrCount = $('#dnrCount');
+  $ui.rememberedCount = $('#rememberedCount');
+  $ui.navPrefetchCount = $('#navPrefetchCount');
+  $ui.navPrefetchMatches = $('#navPrefetchMatches');
+}
+
+function setStatus(key, message) {
+  const $node = $status[key];
+  if (!$node || !$node.length) return;
+  $node.prop('hidden', !message).toggleClass('show', !!message).attr('title', message || '');
 }
 
 function renderNavPrefetchPreview(message) {
@@ -166,7 +95,6 @@ function renderNavPrefetchPreview(message) {
 }
 
 function updateNavPrefetchPreview() {
-  if (activeTab !== 'network') return;
   const labels = splitLoose($fields.navPrefetchLabels.val()).filter(value => value.length >= 3);
   setCount($ui.navPrefetchCount, labels.length, 'label');
   if (!$fields.enableNavPrefetch.prop('checked')) return renderNavPrefetchPreview('Enable nav prefetch to preview matches.');
@@ -185,18 +113,7 @@ function updateNavPrefetchPreview() {
 
 function scheduleNavPrefetchPreview() {
   clearTimeout(previewTimer);
-  if (activeTab !== 'network') return;
-  previewTimer = setTimeout(updateNavPrefetchPreview, 40);
-}
-
-function toggleLegacyControls(forceState) {
-  if (!$legacyToggle.length || !$legacySection.length) return;
-  const currentlyHidden = $legacySection.prop('hidden');
-  const shouldShow = typeof forceState === 'boolean' ? forceState : !currentlyHidden;
-  const sectionEl = $legacySection[0];
-  $legacySection.prop('hidden', !shouldShow).attr('aria-hidden', !shouldShow);
-  $legacyToggle.attr('aria-expanded', shouldShow).text(shouldShow ? 'Hide legacy controls' : 'Show legacy controls');
-  if (shouldShow && sectionEl && sectionEl.scrollIntoView) sectionEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  previewTimer = setTimeout(updateNavPrefetchPreview, 60);
 }
 
 function refreshStatuses() {
@@ -231,99 +148,50 @@ function refreshStatuses() {
   const validNavLabels = navLabels.filter(part => part.length >= 3);
   setStatus('navPrefetchLabels', navLabels.length && validNavLabels.length !== navLabels.length ? 'Entries shorter than 3 characters are ignored.' : '');
 
-  const dnrLines = String($fields.dnrList.val() || '').split('\n').map(line => line.trim()).filter(Boolean);
-  const validDnrLines = dnrLines.filter(line => line.replace(/,/g, ' ').split(/\s+/).filter(Boolean).length >= 2);
-  setCount($ui.dnrCount, dnrLines.length, 'entry', 'entries');
-  setStatus('dnrList', dnrLines.length && validDnrLines.length !== dnrLines.length ? 'Some lines need both first and last names.' : '');
+  const dnrEntries = parseDnrEntries($fields.dnrList.val());
+  const validDnrEntries = dnrEntries.filter(line => line.replace(/,/g, ' ').split(/\s+/).filter(Boolean).length >= 2);
+  setCount($ui.dnrCount, dnrEntries.length, 'entry', 'entries');
+  setStatus('dnrList', dnrEntries.length && validDnrEntries.length !== dnrEntries.length ? 'Some lines need both first and last names.' : '');
 
   const rememberedCount = parseRememberedUsernames($fields.rememberedUsernames.val()).length;
   setText($ui.rememberedCount, `${rememberedCount} saved${rememberedCount >= MAX_REMEMBERED_USERNAMES ? ` · max ${MAX_REMEMBERED_USERNAMES}` : ''}`);
 
-  setStatus('enableAbortRequests',
-    $fields.enableAbortRequests.prop('checked')
-      ? (!validAbortPatterns.length ? 'Add at least one URL pattern.' : '')
-      : (abortPatterns.length ? 'Disabled, so listed patterns will not apply.' : '')
-  );
-  setStatus('enableNavPrefetch',
-    $fields.enableNavPrefetch.prop('checked')
-      ? (!validNavLabels.length ? 'Add at least one label.' : '')
-      : (validNavLabels.length ? 'Disabled, so matching links will not prefetch.' : '')
-  );
-  setStatus('enableCacheControl',
-    $fields.enableCacheControl.prop('checked')
-      ? (!validCachePatterns.length ? 'Add at least one URL pattern.' : '')
-      : (validCachePatterns.length ? 'Disabled, so matching requests will not get cache hints.' : '')
-  );
+  setStatus('enableAbortRequests', $fields.enableAbortRequests.prop('checked') ? (!validAbortPatterns.length ? 'Add at least one URL pattern.' : '') : (abortPatterns.length ? 'Disabled, so listed patterns will not apply.' : ''));
+  setStatus('enableCacheControl', $fields.enableCacheControl.prop('checked') ? (!validCachePatterns.length ? 'Add at least one URL pattern.' : '') : (validCachePatterns.length ? 'Disabled, so matching requests will not get cache hints.' : ''));
+  setStatus('enableNavPrefetch', $fields.enableNavPrefetch.prop('checked') ? (!validNavLabels.length ? 'Add at least one label.' : '') : (validNavLabels.length ? 'Disabled, so matching links will not prefetch.' : ''));
 
   scheduleNavPrefetchPreview();
 }
 
 function syncUI() {
-  $fields.navPrefetchLabels.prop('disabled', !$fields.enableNavPrefetch.prop('checked'));
-  $fields.abortRequestTimeoutMs.prop('disabled', !$fields.enableAbortRequests.prop('checked'));
-  $fields.abortRequestPatterns.prop('disabled', !$fields.enableAbortRequests.prop('checked'));
-  $fields.cacheControlMaxAgeSeconds.prop('disabled', !$fields.enableCacheControl.prop('checked'));
-  $fields.cacheControlPatterns.prop('disabled', !$fields.enableCacheControl.prop('checked'));
-  $fields.dnrList.prop('disabled', !$fields.enableDNR.prop('checked'));
-  $fields.dnrTooltipText.prop('disabled', !$fields.enableDNR.prop('checked'));
-  $fields.dnrHighlightColor.prop('disabled', !$fields.enableDNR.prop('checked'));
-  $fields.hideColumnMenuText.prop('disabled', !$fields.enableHideColumn.prop('checked'));
-  $fields.hideRowMenuText.prop('disabled', !$fields.enableHideRow.prop('checked'));
-  $fields.rememberedUsernames.prop('disabled', !$fields.enableRememberUsername.prop('checked'));
+  FIELDS.forEach(field => {
+    if (!field.dependsOn) return;
+    const parent = $fields[field.dependsOn];
+    if (!parent || !$fields[field.key]) return;
+    $fields[field.key].prop('disabled', !parent.prop('checked'));
+  });
   refreshStatuses();
 }
 
-function setActiveTab(name) {
-  activeTab = name;
-  clearTimeout(previewTimer);
-  $tabs.each((_, button) => {
-    const $button = $(button);
-    const active = $button.data('tab-button') === name;
-    $button.toggleClass('is-active', active).attr('aria-selected', active ? 'true' : 'false').prop('tabIndex', active ? 0 : -1);
+function readForm() {
+  const values = {};
+  FIELDS.forEach(field => {
+    const $field = $fields[field.key];
+    if (!$field || !$field.length) return;
+    if (field.type === 'toggle') values[field.key] = $field.prop('checked');
+    else if (field.type === 'number') values[field.key] = Math.max(field.min || 1, parseInt($field.val() || field.defaultValue, 10) || field.defaultValue);
+    else values[field.key] = $field.val() || field.defaultValue || '';
   });
-  $panels.each((_, panel) => $(panel).prop('hidden', $(panel).data('tab-panel') !== name).attr('aria-hidden', $(panel).data('tab-panel') !== name));
-  if (name === 'network') scheduleNavPrefetchPreview();
+  const rememberedUsernames = parseRememberedUsernames(values.rememberedUsernames || '').join('\n');
+  values.rememberedUsernames = rememberedUsernames;
+  values.rememberedUsername = getPrimaryRememberedUsername(rememberedUsernames);
+  return values;
 }
 
 function showSaved() {
   clearTimeout(savedTimer);
-  $ui.saved.addClass('show');
-  savedTimer = setTimeout(() => $ui.saved.removeClass('show'), 1000);
-}
-
-function scheduleSave(delay) {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveSettings, delay);
-}
-
-function readForm() {
-  const getText = key => $fields[key].val() || DEFAULTS[key] || '';
-  const rememberedUsernames = parseRememberedUsernames($fields.rememberedUsernames.val() || '');
-  const rememberedUsernamesText = rememberedUsernames.join('\n');
-  const values = {
-    dnrList: getText('dnrList'),
-    blockedHosts: getText('blockedHosts'),
-    navPrefetchLabels: getText('navPrefetchLabels'),
-    abortRequestPatterns: getText('abortRequestPatterns'),
-    cacheControlPatterns: getText('cacheControlPatterns'),
-    rememberedUsernames: rememberedUsernamesText,
-    rememberedUsername: getPrimaryRememberedUsername(rememberedUsernamesText),
-    dnrTooltipText: getText('dnrTooltipText') || DEFAULTS.dnrTooltipText,
-    dnrHighlightColor: getText('dnrHighlightColor') || DEFAULTS.dnrHighlightColor,
-    backLinkText: getText('backLinkText') || DEFAULTS.backLinkText,
-    hideColumnMenuText: getText('hideColumnMenuText') || DEFAULTS.hideColumnMenuText,
-    hideRowMenuText: getText('hideRowMenuText') || DEFAULTS.hideRowMenuText,
-    fontMode: $fields.fontMode.val() || DEFAULTS.fontMode,
-    animationMode: $fields.animationMode.val() || DEFAULTS.animationMode
-  };
-  BOOLEAN_FIELDS.forEach(key => {
-    if ($fields[key] && $fields[key].length) values[key] = $fields[key].prop('checked');
-  });
-  NUMERIC_FIELDS.forEach(key => {
-    const fallback = DEFAULTS[key] || 1;
-    values[key] = Math.max(1, parseInt($fields[key].val() || fallback, 10) || fallback);
-  });
-  return values;
+  $saved.addClass('show');
+  savedTimer = setTimeout(() => $saved.removeClass('show'), 1000);
 }
 
 function saveSettings() {
@@ -337,49 +205,43 @@ function saveSettings() {
   });
 }
 
+function scheduleSave(delay) {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSettings, delay);
+}
+
 function bindField(field) {
-  const isImmediate = field.is('input[type="checkbox"], select');
-  const eventName = isImmediate ? 'change' : 'input';
-  field.on(eventName, () => {
-    if (field.is('input[type="checkbox"]')) syncUI();
+  const $field = $fields[field.key];
+  if (!$field || !$field.length) return;
+  const isImmediate = field.type === 'toggle' || field.type === 'select' || field.type === 'color';
+  $field.on(isImmediate ? 'change' : 'input', () => {
+    if (field.type === 'toggle') syncUI();
     else refreshStatuses();
-    scheduleSave(isImmediate ? 0 : 250);
+    scheduleSave(isImmediate ? 0 : 180);
   });
 }
 
-chrome.storage.sync.get(DEFAULTS, items => {
-  if (chrome.runtime.lastError) {
-    console.error('[CA Enhanced] Failed to load settings:', chrome.runtime.lastError);
-    return;
-  }
-  const values = { ...DEFAULTS, ...items, rememberedUsernames: items.rememberedUsernames || items.rememberedUsername || '' };
-  try {
-    Object.entries($fields).forEach(([key, $field]) => {
-      if (!$field.length) return;
-      if ($field.is(':checkbox')) $field.prop('checked', !!values[key]);
-      else $field.val(values[key] || '');
-    });
-    setActiveTab('main');
-    syncUI();
-  } catch (e) {
-    console.error('[CA Enhanced] Failed to load settings:', e);
-  }
-});
+function loadSettings() {
+  chrome.storage.sync.get(DEFAULTS, items => {
+    if (chrome.runtime.lastError) {
+      console.error('[CA Enhanced] Failed to load settings:', chrome.runtime.lastError);
+      return;
+    }
+    const values = { ...DEFAULTS, ...items, rememberedUsernames: items.rememberedUsernames || items.rememberedUsername || '' };
+    try {
+      FIELDS.forEach(field => {
+        const $field = $fields[field.key];
+        if (!$field || !$field.length) return;
+        if (field.type === 'toggle') $field.prop('checked', !!values[field.key]);
+        else $field.val(values[field.key] == null ? field.defaultValue || '' : values[field.key]);
+      });
+      syncUI();
+    } catch (error) {
+      console.error('[CA Enhanced] Failed to load settings:', error);
+    }
+  });
+}
 
-$tabs.on('click', function() {
-  setActiveTab($(this).data('tab-button'));
-});
-
-$tabs.on('keydown', function(e) {
-  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
-  e.preventDefault();
-  const index = $tabs.index(this);
-  const nextIndex = e.key === 'Home' ? 0 : e.key === 'End' ? $tabs.length - 1 : (index + (e.key === 'ArrowRight' ? 1 : -1) + $tabs.length) % $tabs.length;
-  const $next = $tabs.eq(nextIndex);
-  setActiveTab($next.data('tab-button'));
-  $next.trigger('focus');
-});
-
-Object.values($fields).forEach(bindField);
-$legacyToggle.on('click', () => toggleLegacyControls());
-toggleLegacyControls(false);
+mountForm();
+FIELDS.forEach(bindField);
+loadSettings();

@@ -13,7 +13,7 @@
   "content_scripts": [
     {
       "matches": ["https://choiceadvantage.com/*", "https://*.choiceadvantage.com/*"],
-      "js": ["fake-data.js", "content.js"],
+      "js": ["settings.js", "fake-data.js", "content.js"],
       "run_at": "document_start"
     }
   ],

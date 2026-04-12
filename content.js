@@ -2,42 +2,13 @@
 (function() {
   'use strict';
 
+  const {
+    DEFAULTS,
+    cleanText,
+    splitLoose,
+    parseRememberedUsernames
+  } = globalThis.CA_ENHANCED_SETTINGS;
   const LOG = '[CA Enhanced]';
-  const DEFAULTS = {
-    dnrList: '',
-    enableAbortRequests: false,
-    abortRequestTimeoutMs: 3500,
-    abortRequestPatterns: '',
-    fixMixedContentFavicon: true,
-    suppressWelcomeImage404: true,
-    dedupeErrorMessageWriter: true,
-    guardHideGooglePopup: true,
-    removeUnusedFontPreload: true,
-    removeTelemetryHints: true,
-    lazyLoadNoncriticalImages: false,
-    hideNoncriticalImages: false,
-    hideTopBar: true,
-    hideResourceCenter: true,
-    fontMode: 'default',
-    animationMode: 'reduced',
-    enableNavPrefetch: true,
-    navPrefetchLabels: 'arrivals\ndepartures\nin-house',
-    enableDNR: true,
-    enableCacheControl: false,
-    cacheControlMaxAgeSeconds: 3600,
-    cacheControlPatterns: '',
-    enableEscapeKey: true,
-    enableHideColumn: true,
-    enableHideRow: true,
-    enableRememberUsername: true,
-    rememberedUsername: '',
-    rememberedUsernames: '',
-    dnrTooltipText: 'Check DNR!',
-    dnrHighlightColor: '#dc3545',
-    backLinkText: 'Back',
-    hideColumnMenuText: 'Hide Column',
-    hideRowMenuText: 'Hide Row'
-  };
   const HIGHLIGHT = {
     textDecoration: 'underline',
     textDecorationThickness: '2px',
@@ -159,22 +130,32 @@
     return state.dnrRules.find(rule => words.has(rule.first) && words.has(rule.last)) || null;
   }
 
-  const cleanText = value => (value || '').trim();
   const settingText = (key, fallback) => cleanText(state.settings[key]) || fallback;
-  const parseSimpleList = value => String(value || '').split('\n').flatMap(line => line.split(',')).map(part => cleanText(part).toLowerCase()).filter(part => part.length >= 3);
+  const parseSimpleList = value => splitLoose(value).map(part => cleanText(part).toLowerCase()).filter(part => part.length >= 3);
   const escapeRegExp = value => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const FAKE_DATA = globalThis.CAEnhancedFakeData || {};
-  const parseRememberedUsernames = value => {
-    const seen = new Set();
-    return String(value || '').split('\n').map(cleanText).filter(Boolean).filter(username => {
-      const key = username.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    }).slice(0, MAX_REMEMBERED_USERNAMES);
-  };
   const getRememberedUsernames = settings => parseRememberedUsernames(settings.rememberedUsernames || settings.rememberedUsername || '');
   const serializeRememberedUsernames = usernames => usernames.join('\n');
+  const getPage$ = () => document.defaultView && (document.defaultView.jQuery || document.defaultView.$);
+  const findAll = (selector, root = document) => {
+    const page$ = getPage$();
+    if (page$ && root === document) {
+      try {
+        return page$(selector).toArray();
+      } catch (error) {}
+    }
+    return Array.from(root.querySelectorAll(selector));
+  };
+  const findClosest = (node, selector) => {
+    const page$ = getPage$();
+    if (page$ && node) {
+      try {
+        const match = page$(node).closest(selector);
+        if (match.length) return match[0];
+      } catch (error) {}
+    }
+    return node && node.closest ? node.closest(selector) : null;
+  };
   const matchesNavPrefetchLabel = (text, labels) => !!text && labels.some(label => new RegExp(`(^|\\s)${escapeRegExp(label).replace(/\s+/g, '\\s+')}(?=\\s|$)`, 'i').test(text));
   const normalizeSrc = value => {
     try {
@@ -222,11 +203,11 @@
   function fillFakeData(kind = 'fakeProfile') {
     const active = document.activeElement;
     const target = state.lastFormTarget && document.contains(state.lastFormTarget) ? state.lastFormTarget : active;
-    const form = target && target.tagName === 'FORM' ? target : target && target.form || target && target.closest && target.closest('form');
+    const form = target && target.tagName === 'FORM' ? target : target && target.form || findClosest(target, 'form');
     if (!form) return false;
     const profile = FAKE_DATA.createFakeProfile ? FAKE_DATA.createFakeProfile() : null;
     let filled = 0;
-    Array.from(form.querySelectorAll('input, textarea, select')).forEach(node => {
+    findAll('input, textarea, select', form).forEach(node => {
       if (!isEditableField(node)) return;
       if (!FAKE_DATA.shouldFillField || !FAKE_DATA.shouldFillField(node, kind)) return;
       const value = FAKE_DATA.getFakeValue ? FAKE_DATA.getFakeValue(node, profile, kind) : null;
@@ -240,8 +221,8 @@
   }
 
   function rememberFormTarget(target) {
-    if (!target || !target.closest) return;
-    const form = target.closest('form');
+    if (!target) return;
+    const form = findClosest(target, 'form');
     if (form) state.lastFormTarget = form;
   }
 
@@ -516,7 +497,7 @@
   }
 
   function refreshDNRLinks(root = document) {
-    root.querySelectorAll('table a').forEach(link => safe('DNR link scan failed', () => {
+    findAll('table a', root).forEach(link => safe('DNR link scan failed', () => {
       const match = findDNRMatch(link.innerText || link.textContent);
       if (!match) {
         if (link.dataset.caDnr) clearDNRLink(link);
@@ -553,7 +534,7 @@
   }
 
   function initDNRUI() {
-    const findLink = target => target && target.closest && target.closest('a[data-ca-dnr]');
+    const findLink = target => findClosest(target, 'a[data-ca-dnr]');
     document.addEventListener('mouseover', e => {
       const link = findLink(e.target);
       if (link) showTooltip(link);
@@ -581,7 +562,7 @@
       const tagName = e.target && e.target.tagName;
       if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') return;
       const targetText = settingText('backLinkText', DEFAULTS.backLinkText).toLowerCase();
-      const backLink = Array.from(document.querySelectorAll('a')).find(link => link.textContent && link.textContent.trim().toLowerCase() === targetText);
+      const backLink = findAll('a').find(link => link.textContent && link.textContent.trim().toLowerCase() === targetText);
       if (!backLink) return;
       e.preventDefault();
       showAutoAction(`Auto-clicked "${backLink.textContent.trim() || targetText}"`);
@@ -591,15 +572,15 @@
 
   function initTableTracking() {
     document.addEventListener('mousedown', e => safe('Table tracking failed', () => {
-      state.lastClickedHeader = state.settings.enableHideColumn && e.target ? e.target.closest('table th') : null;
-      state.lastClickedRow = state.settings.enableHideRow && e.target ? e.target.closest('table tr') : null;
+      state.lastClickedHeader = state.settings.enableHideColumn && e.target ? findClosest(e.target, 'table th') : null;
+      state.lastClickedRow = state.settings.enableHideRow && e.target ? findClosest(e.target, 'table tr') : null;
     }));
   }
 
   function hideSelectedColumn() {
     if (!state.settings.enableHideColumn) return;
     if (!state.lastClickedHeader) return console.warn(`${LOG} No header selected`);
-    const table = state.lastClickedHeader.closest('table');
+    const table = findClosest(state.lastClickedHeader, 'table');
     const row = state.lastClickedHeader.parentElement;
     if (!table || !row) {
       state.lastClickedHeader = null;
@@ -610,7 +591,7 @@
       state.lastClickedHeader = null;
       return console.warn(`${LOG} Column index not found`);
     }
-    table.querySelectorAll('tr').forEach(rowEl => {
+    findAll('tr', table).forEach(rowEl => {
       if (rowEl.children[colIndex]) rowEl.children[colIndex].style.display = 'none';
     });
     showAutoAction(`Auto-hid column "${state.lastClickedHeader.textContent.trim() || colIndex + 1}"`);
@@ -620,7 +601,7 @@
   function hideSelectedRow() {
     if (!state.settings.enableHideRow) return;
     if (!state.lastClickedRow) return console.warn(`${LOG} No row selected`);
-    const rowLabel = Array.from(state.lastClickedRow.querySelectorAll('th, td')).map(cell => cleanText(cell.textContent)).find(Boolean);
+    const rowLabel = findAll('th, td', state.lastClickedRow).map(cell => cleanText(cell.textContent)).find(Boolean);
     state.lastClickedRow.style.display = 'none';
     showAutoAction(`Auto-hid row${rowLabel ? ` "${rowLabel}"` : ''}`);
     state.lastClickedRow = null;
@@ -650,12 +631,12 @@
     if (!isUserLoginPage()) return false;
     const form = input && input.form;
     if (form && form.querySelector('input[type="password"]')) return true;
-    const container = input && input.closest && input.closest('form, [role="form"], .login, .signin, .sign-in');
+    const container = findClosest(input, 'form, [role="form"], .login, .signin, .sign-in');
     return !!(container && container.querySelector && container.querySelector('input[type="password"]'));
   }
 
   function getUsernameFields(root = document) {
-    return Array.from(root.querySelectorAll('input')).filter(input => isUsernameField(input) && isLoginContext(input));
+    return findAll('input', root).filter(input => isUsernameField(input) && isLoginContext(input));
   }
 
   function fillUsernameField(input, value) {
@@ -742,7 +723,7 @@
       if (msg.action === 'fakeName') fillFakeData('fakeName');
       if (msg.action === 'fakeAddress') fillFakeData('fakeAddress');
       if (msg.action === 'fakePhone') fillFakeData('fakePhone');
-      if (msg.action === 'countNavPrefetchMatches') sendResponse({ navPrefetchMatches: Array.from(document.querySelectorAll('a[href]')).filter(link => matchesNavPrefetchLabel(cleanText(link.textContent).toLowerCase(), parseSimpleList(msg.navPrefetchLabels || state.settings.navPrefetchLabels))).length });
+      if (msg.action === 'countNavPrefetchMatches') sendResponse({ navPrefetchMatches: findAll('a[href]').filter(link => matchesNavPrefetchLabel(cleanText(link.textContent).toLowerCase(), parseSimpleList(msg.navPrefetchLabels || state.settings.navPrefetchLabels))).length });
     }));
   }
 
@@ -767,7 +748,7 @@
   function prefetchMatchingNavLinks(root = document) {
     if (!state.settings.enableNavPrefetch || !state.navPrefetchLabels.length) return;
     let count = 0;
-    root.querySelectorAll('a[href]').forEach(link => {
+    findAll('a[href]', root).forEach(link => {
       if (count >= NAV_PREFETCH_LIMIT) return;
       const label = cleanText(link.textContent).toLowerCase();
       if (!matchesNavPrefetchLabel(label, state.navPrefetchLabels)) return;
@@ -778,7 +759,7 @@
   function initNavPrefetch() {
     const maybePrefetch = target => safe('Nav prefetch failed', () => {
       if (!state.settings.enableNavPrefetch || !state.navPrefetchLabels.length) return;
-      const link = target && target.closest && target.closest('a[href]');
+      const link = findClosest(target, 'a[href]');
       const label = cleanText(link && link.textContent).toLowerCase();
       if (!link || !matchesNavPrefetchLabel(label, state.navPrefetchLabels)) return;
       return prefetchNavLink(link);
