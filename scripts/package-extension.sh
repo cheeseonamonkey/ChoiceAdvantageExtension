@@ -9,7 +9,6 @@ zip -r "$out" \
   background.js \
   content.js \
   settings.js \
-  page.js \
   fake-data.js \
   jquery.min.js \
   options.html \

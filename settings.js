@@ -8,8 +8,7 @@
     { key: 'pageFixes', title: 'Page Fixes', note: 'Corrective fixes that are usually safe to leave on.', open: true },
     { key: 'styling', title: 'Styling', note: 'Cosmetic page changes. Disabled by default.', open: false },
     { key: 'blocking', title: 'Blocking', note: 'Network blocking and custom host rules.', open: false },
-    { key: 'performance', title: 'Performance', note: 'Prefetch and image behavior.', open: false },
-    { key: 'legacy', title: 'Legacy', note: 'More brittle request overrides.', open: false }
+    { key: 'performance', title: 'Performance', note: 'Prefetch and image behavior.', open: false }
   ];
 
   const FIELDS = [
@@ -30,8 +29,8 @@
 
     { key: 'fixMixedContentFavicon', section: 'pageFixes', type: 'toggle', label: 'Fix mixed favicon', description: 'Replace the broken insecure favicon URL.', title: 'Replace the insecure mixed-content favicon URL with a safe inline icon.', defaultValue: true },
     { key: 'suppressWelcomeImage404', section: 'pageFixes', type: 'toggle', label: 'Suppress welcome image 404', description: 'Hide the repeated broken welcome image request.', title: 'Hide the broken welcome image request that repeatedly 404s.', defaultValue: true },
-    { key: 'dedupeErrorMessageWriter', section: 'pageFixes', type: 'toggle', label: 'Dedupe ErrorMessageWriter', description: 'Prevent duplicate script loads and redeclaration errors.', title: 'Prevent duplicate ErrorMessageWriter loads that trigger redeclaration errors.', defaultValue: true },
-    { key: 'guardHideGooglePopup', section: 'pageFixes', type: 'toggle', label: 'Guard login popup handler', description: 'Prevent the broken login popup handler from throwing.', title: 'Wrap the broken hideGooglePopUp handler so null nodes do not throw.', defaultValue: true },
+    { key: 'dedupeErrorMessageWriter', section: 'pageFixes', type: 'toggle', label: 'Dedupe ErrorMessageWriter', description: 'Prevent duplicate script loads and redeclaration errors.', title: 'Prevent duplicate ErrorMessageWriter loads that trigger redeclaration errors.', defaultValue: false },
+    { key: 'guardHideGooglePopup', section: 'pageFixes', type: 'toggle', label: 'Guard login popup handler', description: 'Prevent the broken login popup handler from throwing.', title: 'Wrap the broken hideGooglePopUp handler so null nodes do not throw.', defaultValue: false },
     { key: 'removeUnusedFontPreload', section: 'pageFixes', type: 'toggle', label: 'Remove stale font preload', description: 'Remove the unused Sansation preload warning.', title: 'Remove the unused Sansation font preload that causes warnings.', defaultValue: true },
     { key: 'removeTelemetryHints', section: 'pageFixes', type: 'toggle', label: 'Remove telemetry hints', description: 'Strip resource hints pointing at blocked telemetry hosts.', title: 'Strip resource hints pointing at blocked telemetry hosts.', defaultValue: false },
 
@@ -57,14 +56,7 @@
     { key: 'enableNavPrefetch', section: 'performance', type: 'toggle', label: 'Prefetch nav targets', description: 'Prefetch links whose text matches the labels below.', title: 'Prefetch common navigation pages when you hover or focus their links.', defaultValue: false, status: true },
     { key: 'navPrefetchLabels', section: 'performance', type: 'textarea', label: 'Nav prefetch labels', title: 'One label per line or comma-separated. Matching link text will be prefetched on hover or focus.', placeholder: 'arrivals\ndepartures\nin-house', defaultValue: 'arrivals\ndepartures\nin-house', dependsOn: 'enableNavPrefetch', status: true, note: 'One label per line or comma-separated. Matching link text will be prefetched on hover or focus.' },
     { key: 'lazyLoadNoncriticalImages', section: 'performance', type: 'toggle', label: 'Lazy-load images', description: 'Delay noncritical welcome and login images.', title: 'Delay noncritical images until they are closer to view.', defaultValue: false },
-    { key: 'hideNoncriticalImages', section: 'performance', type: 'toggle', label: 'Hide welcome/login images', description: 'Hide nonessential welcome and login images.', title: 'Hide nonessential welcome and login images to reduce layout work.', defaultValue: false },
-
-    { key: 'enableAbortRequests', section: 'legacy', type: 'toggle', label: 'Abort matching requests', description: 'Abort matching page fetch and async XMLHttpRequest calls after a timeout.', title: 'Apply a configurable timeout to matching page fetch and async XHR requests.', defaultValue: false, status: true },
-    { key: 'abortRequestTimeoutMs', section: 'legacy', type: 'number', label: 'Abort timeout (ms)', title: 'Abort timeout for matching fetch/XHR requests.', defaultValue: 3500, min: 1, step: 100, dependsOn: 'enableAbortRequests', status: true },
-    { key: 'abortRequestPatterns', section: 'legacy', type: 'textarea', label: 'Abort URL patterns', title: 'One URL fragment per line or comma-separated. Matching fetch/XHR requests are aborted after the timeout.', placeholder: '/welcome/images/welcome-thank-you.jpg\nErrorMessageWriter.js', defaultValue: '', dependsOn: 'enableAbortRequests', status: true },
-    { key: 'enableCacheControl', section: 'legacy', type: 'toggle', label: 'Cache matching requests', description: 'Prefer cached responses for matching GET and HEAD requests.', title: 'Apply request-side cache hints to matching GET and HEAD requests.', defaultValue: false, status: true },
-    { key: 'cacheControlMaxAgeSeconds', section: 'legacy', type: 'number', label: 'Cache max-age (seconds)', title: 'Cache max-age for matching GET/HEAD requests.', defaultValue: 3600, min: 1, step: 60, dependsOn: 'enableCacheControl', status: true },
-    { key: 'cacheControlPatterns', section: 'legacy', type: 'textarea', label: 'Cache-control URL patterns', title: 'One URL fragment per line or comma-separated. Matching GET and HEAD requests get cache-control request hints.', placeholder: '/choicehotels/welcome/\nArrivalList.do', defaultValue: '', dependsOn: 'enableCacheControl', status: true }
+    { key: 'hideNoncriticalImages', section: 'performance', type: 'toggle', label: 'Hide welcome/login images', description: 'Hide nonessential welcome and login images.', title: 'Hide nonessential welcome and login images to reduce layout work.', defaultValue: false }
   ];
 
   const FIELD_MAP = Object.fromEntries(FIELDS.map(field => [field.key, field]));

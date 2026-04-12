@@ -80,10 +80,9 @@
   ];
   const NONCRITICAL_IMAGE_PATTERNS = ['/choicehotels/welcome/', '/choicehotels/sign_in', '/choicehotels/login'];
   const NAV_PREFETCH_LIMIT = 6;
-  const PAGE_CONFIG_EVENT = 'ca-enhanced-page-config';
   const PAGE_ACTION_EVENT = 'ca-enhanced-auto-action';
   const seenScripts = new Set();
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, headHintsLoadBound: false, uiFixesLoadBound: false, googlePopupGuardTimer: 0, pageScriptInjected: false, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [], usernameOptions: null, lastFormTarget: null, isUserLoginPage: null, loginPageCheckTime: 0, loginPageTitle: '' };
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], lastClickedHeader: null, lastClickedRow: null, tooltip: null, activeLink: null, autoActionToast: null, autoActionTimer: 0, rescanTimer: 0, headObserver: null, headObserverStopTimer: 0, headObserverLoadBound: false, headHintsLoadBound: false, uiFixesLoadBound: false, googlePopupGuardTimer: 0, animationStyle: null, prefetchedHrefs: new Set(), navPrefetchLabels: [], usernameOptions: null, lastFormTarget: null, isUserLoginPage: null, loginPageCheckTime: 0, loginPageTitle: '' };
 
   const safe = (label, fn) => {
     try {
@@ -260,30 +259,6 @@
       head.appendChild(style);
     }
     style.textContent = css;
-  }
-
-  function injectPageScript() {
-    if (state.pageScriptInjected || !document.documentElement) return;
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('page.js');
-    script.dataset.caEnhanced = 'page';
-    script.async = false;
-    script.addEventListener('load', () => script.remove(), { once: true });
-    script.addEventListener('error', () => script.remove(), { once: true });
-    (document.head || document.documentElement).appendChild(script);
-    state.pageScriptInjected = true;
-  }
-
-  function syncPageConfig() {
-    window.__CA_ENHANCED_PAGE_CONFIG = {
-      enableAbortRequests: !!state.settings.enableAbortRequests,
-      abortRequestTimeoutMs: Math.max(1, Number(state.settings.abortRequestTimeoutMs) || DEFAULTS.abortRequestTimeoutMs),
-      abortRequestPatterns: state.settings.abortRequestPatterns || '',
-      enableCacheControl: !!state.settings.enableCacheControl,
-      cacheControlMaxAgeSeconds: Math.max(1, Number(state.settings.cacheControlMaxAgeSeconds) || DEFAULTS.cacheControlMaxAgeSeconds),
-      cacheControlPatterns: state.settings.cacheControlPatterns || ''
-    };
-    window.dispatchEvent(new CustomEvent(PAGE_CONFIG_EVENT, { detail: window.__CA_ENHANCED_PAGE_CONFIG }));
   }
 
   function sanitizeNode(node) {
@@ -523,7 +498,6 @@
     state.settings = { ...state.settings, ...nextSettings };
     state.dnrRules = compileRules(state.settings.dnrList || '');
     state.navPrefetchLabels = parseSimpleList(state.settings.navPrefetchLabels || '');
-    syncPageConfig();
     ensureUiFixes();
     syncAnimationMode();
     initHeadFixes();
@@ -802,7 +776,6 @@
     safe('Storage sync init failed', initStorageSync);
   }
 
-  injectPageScript();
   syncAnimationMode();
   initHeadFixes();
 

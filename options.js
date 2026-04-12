@@ -134,20 +134,6 @@ function refreshStatuses() {
   if (blockedIssues) blockedWarnings.push('Some entries are ignored, duplicated, or reserved.');
   setStatus('blockedHosts', blockedWarnings.join(' '));
 
-  const timeout = Number($fields.abortRequestTimeoutMs.val());
-  setStatus('abortRequestTimeoutMs', !Number.isInteger(timeout) || timeout < 1 ? 'Must be a positive whole number.' : '');
-
-  const abortPatterns = splitLoose($fields.abortRequestPatterns.val());
-  const validAbortPatterns = abortPatterns.filter(part => part.length >= 3);
-  setStatus('abortRequestPatterns', abortPatterns.length && validAbortPatterns.length !== abortPatterns.length ? 'Entries shorter than 3 characters are ignored.' : '');
-
-  const cacheMaxAge = Number($fields.cacheControlMaxAgeSeconds.val());
-  setStatus('cacheControlMaxAgeSeconds', !Number.isInteger(cacheMaxAge) || cacheMaxAge < 1 ? 'Must be a positive whole number.' : '');
-
-  const cachePatterns = splitLoose($fields.cacheControlPatterns.val());
-  const validCachePatterns = cachePatterns.filter(part => part.length >= 3);
-  setStatus('cacheControlPatterns', cachePatterns.length && validCachePatterns.length !== cachePatterns.length ? 'Entries shorter than 3 characters are ignored.' : '');
-
   const navLabels = splitLoose($fields.navPrefetchLabels.val());
   const validNavLabels = navLabels.filter(part => part.length >= 3);
   setStatus('navPrefetchLabels', navLabels.length && validNavLabels.length !== navLabels.length ? 'Entries shorter than 3 characters are ignored.' : '');
@@ -159,11 +145,7 @@ function refreshStatuses() {
 
   const rememberedCount = parseRememberedUsernames($fields.rememberedUsernames.val()).length;
   setText($ui.rememberedCount, `${rememberedCount} saved${rememberedCount >= MAX_REMEMBERED_USERNAMES ? ` · max ${MAX_REMEMBERED_USERNAMES}` : ''}`);
-
-  const getToggleStatus = (enabled, hasValid, emptyMessage, disabledMessage) => enabled ? (hasValid ? '' : emptyMessage) : (hasValid ? disabledMessage : '');
-  setStatus('enableAbortRequests', getToggleStatus($fields.enableAbortRequests.prop('checked'), !!validAbortPatterns.length, 'Add at least one URL pattern.', 'Disabled, so listed patterns will not apply.'));
-  setStatus('enableCacheControl', getToggleStatus($fields.enableCacheControl.prop('checked'), !!validCachePatterns.length, 'Add at least one URL pattern.', 'Disabled, so matching requests will not get cache hints.'));
-  setStatus('enableNavPrefetch', getToggleStatus($fields.enableNavPrefetch.prop('checked'), !!validNavLabels.length, 'Add at least one label.', 'Disabled, so matching links will not prefetch.'));
+  setStatus('enableNavPrefetch', $fields.enableNavPrefetch.prop('checked') ? (!validNavLabels.length ? 'Add at least one label.' : '') : (validNavLabels.length ? 'Disabled, so matching links will not prefetch.' : ''));
 
   scheduleNavPrefetchPreview();
 }
