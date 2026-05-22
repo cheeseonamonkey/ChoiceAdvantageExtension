@@ -27,7 +27,8 @@ ChoiceAdvantage helper for DNR highlighting, Escape-to-Back, and explicit editab
 ## Automation
 - CI checks syntax, validates `manifest.json`, rebuilds `options.css`, and uploads a zip artifact.
 - `Dist` packages a clean zip on pushes to `main` / `master`.
-- Release rebuilds `options.css`, publishes the zip from `v*` tags, and marks the release latest.
+- Release runs on `main` / `master` pushes and `v*` tags, then publishes both the zip and packaged CRX for the manifest version.
+- Set the `CHROME_EXTENSION_PEM_BASE64` repository secret to a base64-encoded PEM key if release CRXs should keep the same extension ID across workflow runs.
 
 ## Troubleshooting
 - Reload the extension at `chrome://extensions/` if it seems inactive.

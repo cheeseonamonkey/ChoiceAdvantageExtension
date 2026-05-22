@@ -2,6 +2,7 @@ name: Release
 
 on:
   push:
+    branches: [main, master]
     tags:
       - 'v*'
 
@@ -16,18 +17,41 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+        with:
+          chrome-version: stable
       - name: Install Node dependencies
         run: npm ci
       - name: Build popup CSS
         run: npm run build:css
       - name: Verify generated CSS is committed
         run: git diff --exit-code -- options.css
-      - name: Set artifact name
-        run: echo "ARTIFACT=choiceadvantage-enhanced-v$(node -p "require('./manifest.json').version")-chromium.zip" >> "$GITHUB_ENV"
+      - name: Set artifact names
+        run: |
+          version="$(node -p "require('./manifest.json').version")"
+          echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
+          echo "ZIP_ARTIFACT=choiceadvantage-enhanced-v$version-chromium.zip" >> "$GITHUB_ENV"
+          echo "CRX_ARTIFACT=choiceadvantage-enhanced-v$version-chromium.crx" >> "$GITHUB_ENV"
       - name: Build release zip
-        run: ./scripts/package-extension.sh "$ARTIFACT"
+        run: ./scripts/package-extension.sh "$ZIP_ARTIFACT"
+      - name: Load CRX signing key
+        env:
+          CHROME_EXTENSION_PEM_BASE64: ${{ secrets.CHROME_EXTENSION_PEM_BASE64 }}
+        run: |
+          [[ -n "$CHROME_EXTENSION_PEM_BASE64" ]] || exit 0
+          echo "$CHROME_EXTENSION_PEM_BASE64" | base64 --decode > "$RUNNER_TEMP/chrome-extension.pem"
+          echo "CRX_KEY=$RUNNER_TEMP/chrome-extension.pem" >> "$GITHUB_ENV"
+      - name: Build release CRX
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: ./scripts/package-crx.sh "$ZIP_ARTIFACT" "$CRX_ARTIFACT" "${CRX_KEY:-}"
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.ARTIFACT }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            ${{ env.ZIP_ARTIFACT }}
+            ${{ env.CRX_ARTIFACT }}
           make_latest: true
