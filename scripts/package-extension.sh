@@ -9,9 +9,9 @@ zip -r "$out" \
   background.js \
   content.js \
   settings.js \
-  fake-data.js \
   jquery.min.js \
   options.html \
+  options.js \
   options.css \
   icon16.png \
   icon.png \

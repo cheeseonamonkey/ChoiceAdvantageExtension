@@ -16,7 +16,7 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
       - name: Check JS syntax
-        run: node --check settings.js && node --check background.js && node --check fake-data.js && node --check content.js && node --check options.js && node --check page.js
+        run: node --check settings.js && node --check background.js && node --check content.js && node --check options.js
       - name: Validate manifest
         run: node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('manifest.json','utf8')); if(m.manifest_version!==3) throw new Error('manifest_version must be 3'); if(!Array.isArray(m.content_scripts) || !m.content_scripts.length) throw new Error('missing content_scripts');"
 

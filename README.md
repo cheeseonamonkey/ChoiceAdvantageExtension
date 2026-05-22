@@ -1,31 +1,28 @@
-# ChoiceAdvantage Enhanced v4.1
+# ChoiceAdvantage Enhanced v4.2
 
-Compact ChoiceAdvantage helper for DNR highlighting, page cleanup, username memory, fast form fill, and a few low-friction performance tweaks.
+ChoiceAdvantage helper for DNR highlighting, Escape-to-Back, and explicit editable-field test-data inserts.
 
 [Repo](https://github.com/cheeseonamonkey/ChoiceAdvantageExtension) | [Releases](https://github.com/cheeseonamonkey/ChoiceAdvantageExtension/releases)
 
 ## What It Does
-- Blocks the noisier third-party scripts and trims broken page bits.
-- Highlights DNR matches, keeps Escape/back handy, and exposes hide-column / hide-row actions.
-- Remembers usernames only on pages containing `User Login`.
-- Adds quick fake profile/name/address/phone fill actions for editable forms.
-- Prefetches likely next-page links and keeps the popup compact.
+- Underlines DNR matches in table links.
+- Shows a hover reminder for highlighted matches.
+- Clicks the visible page Back link when Escape is pressed outside editable fields.
+- Inserts fake names, coherent address parts, state-matched test phones, published test card numbers, and `12/34` from the editable-field context menu.
 
 ## Install
 1. Best non-dev-mode path: publish the zip to the Chrome Web Store or Edge Add-ons.
 2. For local testing, extract the ZIP, open `chrome://extensions/`, enable Developer mode, and load unpacked.
 3. For managed devices, use a signed CRX plus enterprise policy.
 
-## Popup
-- `Main` holds DNR and the most-used controls.
-- `Tools` holds Escape/back, hide-column, hide-row, and username memory.
-- `Network` holds blockers, prefetch, and the lighter page-fix controls.
-
 ## Config
-- `Font mode` can stay default, switch to slightly larger system fonts, use a more legible compact stack, or use a quiet serif stack.
-- `Hide top bar` and `Hide Resource Center` trim extra page chrome.
-- `Custom blocked hosts` adds extra request blocks.
-- `DNR list` is the guest-name list shown at the top of the popup.
+- `DNR list` is the guest-name list shown in the popup.
+- `Hover text` and `Underline color` adjust the reminder.
+- `Back link text` is the exact link label Escape clicks.
+- DNR highlighting, Escape back, and the test-data context menu each have their own popup checkbox.
+- Choosing `Street address` starts the address profile used by its city, state, ZIP, address line 2, and phone menu entries.
+- Card-number menu entries are fixed published test values for sandbox/test workflows.
+- This release keeps the network-rule permission only to clear blocker rules from older installs.
 
 ## Automation
 - CI checks syntax, validates `manifest.json`, rebuilds `options.css`, and uploads a zip artifact.
@@ -34,5 +31,4 @@ Compact ChoiceAdvantage helper for DNR highlighting, page cleanup, username memo
 
 ## Troubleshooting
 - Reload the extension at `chrome://extensions/` if it seems inactive.
-- Disable the last thing you changed if a page breaks.
-- Warning badges in the popup mean the value is invalid, ignored, or disabled.
+- Warning badges in the popup mean a DNR entry needs both first and last names.

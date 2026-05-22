@@ -1,129 +1,126 @@
-// Background service worker - handles context menu and DNR rules.
+// Background service worker for explicit editable-field test-data inserts.
 importScripts('settings.js');
 
-const { DEFAULTS, parseBlockedHosts } = globalThis.CA_ENHANCED_SETTINGS;
-
-const MENU_IDS = { column: 'hideColumn', row: 'hideRow', choiceAdvantage: 'choiceAdvantage', fakeProfile: 'fakeProfile', fakeName: 'fakeName', fakeAddress: 'fakeAddress', fakePhone: 'fakePhone' };
-const RULE_IDS = { blockPendo: 1, blockTelemetry: 2, blockAkamai: 3 };
-const CUSTOM_RULE_START = 100;
-const MAX_CUSTOM_RULES = 50;
-const INITIATOR_DOMAINS = ['choiceadvantage.com', 'remoteaccess.choiceadvantage.com'];
-const BLOCKED_RESOURCE_TYPES = ['script', 'xmlhttprequest', 'image', 'sub_frame'];
-const PENDO_RULE = {
-  id: RULE_IDS.blockPendo,
-  priority: 1,
-  action: { type: 'block' },
-  condition: {
-    initiatorDomains: INITIATOR_DOMAINS,
-    requestDomains: ['content.nps.skytouchnps.com'],
-    urlFilter: 'pendo.js',
-    resourceTypes: BLOCKED_RESOURCE_TYPES
-  }
+const { DEFAULTS } = globalThis.CA_ENHANCED_SETTINGS;
+const MENU_IDS = {
+  root: 'caTestData',
+  firstName: 'caTestFirstName',
+  lastName: 'caTestLastName',
+  fullName: 'caTestFullName',
+  address: 'caTestAddress',
+  street: 'caTestStreet',
+  unit: 'caTestUnit',
+  city: 'caTestCity',
+  state: 'caTestState',
+  zip: 'caTestZip',
+  phone: 'caTestPhone',
+  expiry: 'caTestExpiry'
 };
-const TELEMETRY_RULE = {
-  id: RULE_IDS.blockTelemetry,
-  priority: 1,
-  action: { type: 'block' },
-  condition: {
-    initiatorDomains: INITIATOR_DOMAINS,
-    requestDomains: ['s.go-mpulse.net', 's2.go-mpulse.net', 'p11.techlab-cdn.com'],
-    resourceTypes: BLOCKED_RESOURCE_TYPES
-  }
+const TEST_CARDS = [
+  ['Visa', '4242424242424242'],
+  ['Mastercard', '5555555555554444'],
+  ['American Express', '378282246310005'],
+  ['Discover', '6011111111111117']
+];
+const FIRST_NAMES = ['Alex', 'Jordan', 'Morgan', 'Taylor', 'Casey', 'Jamie'];
+const LAST_NAMES = ['Rivera', 'Bennett', 'Patel', 'Nguyen', 'Carter', 'Brooks'];
+const ADDRESS_PROFILES = [
+  { street: '1842 Maple Ave', unit: 'Apt 4B', city: 'Denver', state: 'CO', zip: '80202', phone: '(303) 555-0142' },
+  { street: '271 Cedar St', unit: 'Suite 208', city: 'Orlando', state: 'FL', zip: '32801', phone: '(407) 555-0178' },
+  { street: '955 Lake Shore Dr', unit: 'Unit 12', city: 'Chicago', state: 'IL', zip: '60601', phone: '(312) 555-0116' },
+  { street: '603 Pine Way', unit: 'Apt 9', city: 'Seattle', state: 'WA', zip: '98101', phone: '(206) 555-0194' },
+  { street: '1420 Park Rd', unit: 'Suite 31', city: 'Phoenix', state: 'AZ', zip: '85004', phone: '(602) 555-0135' },
+  { street: '88 Peachtree Ln', unit: 'Floor 3', city: 'Atlanta', state: 'GA', zip: '30303', phone: '(404) 555-0161' }
+];
+const ADDRESS_KEYS = {
+  [MENU_IDS.street]: 'street',
+  [MENU_IDS.unit]: 'unit',
+  [MENU_IDS.city]: 'city',
+  [MENU_IDS.state]: 'state',
+  [MENU_IDS.zip]: 'zip',
+  [MENU_IDS.phone]: 'phone'
 };
-const AKAMAI_RULE = {
-  id: RULE_IDS.blockAkamai,
-  priority: 1,
-  action: { type: 'block' },
-  condition: {
-    initiatorDomains: INITIATOR_DOMAINS,
-    urlFilter: '/akam-sw',
-    resourceTypes: ['script']
-  }
-};
+const LEGACY_RULE_IDS = [1, 2, 3, ...Array.from({ length: 50 }, (_, index) => 100 + index)];
+const CHOICEADVANTAGE_PAGES = ['https://choiceadvantage.com/*', 'https://*.choiceadvantage.com/*'];
 
-const ruleForHost = (id, host) => ({
-  id,
-  priority: 1,
-  action: { type: 'block' },
-  condition: {
-    initiatorDomains: INITIATOR_DOMAINS,
-    requestDomains: [host],
-    resourceTypes: BLOCKED_RESOURCE_TYPES
-  }
-});
+const pick = values => values[Math.floor(Math.random() * values.length)];
+const insertValue = value => ({ action: 'insertTestData', value });
+const menu = (id, title, parentId = MENU_IDS.root) => chrome.contextMenus.create({ id, title, parentId, contexts: ['editable'], documentUrlPatterns: CHOICEADVANTAGE_PAGES });
 
-function syncDynamicRules(settings) {
-  const customRules = parseBlockedHosts(settings.blockedHosts).slice(0, MAX_CUSTOM_RULES).map((host, index) => ruleForHost(CUSTOM_RULE_START + index, host));
-  chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [...Object.values(RULE_IDS), ...Array.from({ length: MAX_CUSTOM_RULES }, (_, index) => CUSTOM_RULE_START + index)],
-    addRules: [settings.enableBlockPendo && PENDO_RULE, settings.enableBlockTelemetry && TELEMETRY_RULE, settings.enableBlockAkamai && AKAMAI_RULE, ...customRules].filter(Boolean)
-  }, () => {
-    if (chrome.runtime.lastError) console.error('[CA Enhanced] Dynamic rule sync failed:', chrome.runtime.lastError);
-  });
-}
-
-function syncContextMenu(settings) {
+function buildMenus(enabled) {
   chrome.contextMenus.removeAll(() => {
-    if (chrome.runtime.lastError) {
-      console.error('[CA Enhanced] Context menu reset failed:', chrome.runtime.lastError);
-      return;
-    }
-    chrome.contextMenus.create({ id: MENU_IDS.choiceAdvantage, title: 'ChoiceAdvantage', contexts: ['editable'] }, () => {
-      if (chrome.runtime.lastError) console.error('[CA Enhanced] Context menu creation failed:', chrome.runtime.lastError);
-    });
-    [
-      { id: MENU_IDS.fakeProfile, title: 'Fill fake profile' },
-      { id: MENU_IDS.fakeName, title: 'Fill fake name' },
-      { id: MENU_IDS.fakeAddress, title: 'Fill fake address' },
-      { id: MENU_IDS.fakePhone, title: 'Fill fake phone' }
-    ].forEach(item => chrome.contextMenus.create({ ...item, parentId: MENU_IDS.choiceAdvantage, contexts: ['editable'] }, () => {
-      if (chrome.runtime.lastError) console.error('[CA Enhanced] Context menu creation failed:', chrome.runtime.lastError);
-    }));
-    [
-      settings.enableHideColumn && { id: MENU_IDS.column, title: settings.hideColumnMenuText || DEFAULTS.hideColumnMenuText },
-      settings.enableHideRow && { id: MENU_IDS.row, title: settings.hideRowMenuText || DEFAULTS.hideRowMenuText }
-    ].filter(Boolean).forEach(item => chrome.contextMenus.create({ ...item, contexts: ['all'] }, () => {
-      if (chrome.runtime.lastError) console.error('[CA Enhanced] Context menu creation failed:', chrome.runtime.lastError);
-    }));
+    if (!enabled) return;
+    chrome.contextMenus.create({ id: MENU_IDS.root, title: 'ChoiceAdvantage Test Data', contexts: ['editable'], documentUrlPatterns: CHOICEADVANTAGE_PAGES });
+    menu(MENU_IDS.firstName, 'First name');
+    menu(MENU_IDS.lastName, 'Last name');
+    menu(MENU_IDS.fullName, 'Full name');
+    menu(MENU_IDS.address, 'Address');
+    menu(MENU_IDS.street, 'Street address', MENU_IDS.address);
+    menu(MENU_IDS.unit, 'Address line 2', MENU_IDS.address);
+    menu(MENU_IDS.city, 'City', MENU_IDS.address);
+    menu(MENU_IDS.state, 'State', MENU_IDS.address);
+    menu(MENU_IDS.zip, 'ZIP code', MENU_IDS.address);
+    menu(MENU_IDS.phone, 'Phone number', MENU_IDS.address);
+    menu(MENU_IDS.expiry, 'Expiry 12/34');
+    TEST_CARDS.forEach(([brand]) => menu(`caTestCard:${brand}`, `${brand} test card`));
   });
 }
 
-function loadExtensionState() {
-  chrome.storage.sync.get(DEFAULTS, items => {
-    if (chrome.runtime.lastError) {
-      console.error('[CA Enhanced] Failed to load extension settings:', chrome.runtime.lastError);
-      return;
-    }
-    try {
-      syncContextMenu(items);
-      syncDynamicRules(items);
-    } catch (error) {
-      console.error('[CA Enhanced] Failed to sync extension state:', error);
-    }
+function syncMenus() {
+  chrome.storage.sync.get({ enableTestData: DEFAULTS.enableTestData }, settings => {
+    if (chrome.runtime.lastError) return console.warn('[CA Enhanced] Test data menu load failed:', chrome.runtime.lastError.message);
+    buildMenus(settings.enableTestData);
   });
 }
 
-chrome.runtime.onInstalled.addListener(loadExtensionState);
-chrome.runtime.onStartup.addListener(loadExtensionState);
+function clearLegacyNetworkRules() {
+  chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: LEGACY_RULE_IDS }, () => {
+    if (chrome.runtime.lastError) console.warn('[CA Enhanced] Legacy network rule cleanup failed:', chrome.runtime.lastError.message);
+  });
+}
 
+function valueFor(id) {
+  if (id === MENU_IDS.firstName) return pick(FIRST_NAMES);
+  if (id === MENU_IDS.lastName) return pick(LAST_NAMES);
+  if (id === MENU_IDS.fullName) return `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+  if (id === MENU_IDS.expiry) return '12/34';
+  return TEST_CARDS.find(([brand]) => id === `caTestCard:${brand}`)?.[1];
+}
+
+function getAddressValue(info, tab, id, callback) {
+  const key = ADDRESS_KEYS[id];
+  if (!key) return callback();
+  const profileKey = `addressProfileIndex:${tab.id}:${info.frameId || 0}`;
+  chrome.storage.session.get(profileKey, settings => {
+    const addressProfileIndex = settings[profileKey];
+    const hasProfile = Number.isInteger(addressProfileIndex) && addressProfileIndex >= 0 && addressProfileIndex < ADDRESS_PROFILES.length;
+    const nextIndex = id === MENU_IDS.street || !hasProfile ? Math.floor(Math.random() * ADDRESS_PROFILES.length) : addressProfileIndex;
+    const insert = () => callback(ADDRESS_PROFILES[nextIndex][key]);
+    if (nextIndex !== addressProfileIndex) chrome.storage.session.set({ [profileKey]: nextIndex }, insert);
+    else insert();
+  });
+}
+
+function sendInsert(info, tab, value) {
+  if (!value || !tab || !tab.id) return;
+  chrome.tabs.sendMessage(tab.id, insertValue(value), info.frameId == null ? undefined : { frameId: info.frameId }, () => {
+    if (chrome.runtime.lastError) console.warn('[CA Enhanced] Test data insert failed:', chrome.runtime.lastError.message);
+  });
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  syncMenus();
+  clearLegacyNetworkRules();
+});
+chrome.runtime.onStartup.addListener(() => {
+  syncMenus();
+  clearLegacyNetworkRules();
+});
 chrome.storage.onChanged.addListener((changes, area) => {
-  try {
-    if (area !== 'sync') return;
-    const changed = new Set(Object.keys(changes));
-    if (changed.has('enableBlockPendo') || changed.has('enableBlockTelemetry') || changed.has('enableBlockAkamai') || changed.has('blockedHosts')) chrome.storage.sync.get(DEFAULTS, items => syncDynamicRules(items));
-    if (changed.has('enableHideColumn') || changed.has('enableHideRow') || changed.has('hideColumnMenuText') || changed.has('hideRowMenuText')) chrome.storage.sync.get(DEFAULTS, items => syncContextMenu(items));
-  } catch (error) {
-    console.error('[CA Enhanced] Context menu update failed:', error);
-  }
+  if (area === 'sync' && changes.enableTestData) buildMenus(changes.enableTestData.newValue);
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  try {
-    if (!info || !Object.values(MENU_IDS).includes(info.menuItemId) || !tab || !tab.id) return;
-    chrome.tabs.sendMessage(tab.id, { action: info.menuItemId }, () => {
-      if (chrome.runtime.lastError) console.warn('[CA Enhanced] Message send failed:', chrome.runtime.lastError.message);
-    });
-  } catch (error) {
-    console.error('[CA Enhanced] Context menu click handler failed:', error);
-  }
+  if (ADDRESS_KEYS[info.menuItemId] && tab && tab.id) return getAddressValue(info, tab, info.menuItemId, value => sendInsert(info, tab, value));
+  sendInsert(info, tab, valueFor(info.menuItemId));
 });
