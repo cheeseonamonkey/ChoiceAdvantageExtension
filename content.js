@@ -38,6 +38,18 @@
     THOMAS: 'TOM',
     JAMES: 'JIM'
   };
+  const GUEST_LABELS = {
+    firstName: ['first name'],
+    lastName: ['last name'],
+    address1: ['address 1', 'address line 1'],
+    address2: ['address 2', 'address line 2'],
+    city: ['city'],
+    state: ['state'],
+    zip: ['postal code', 'zip code', 'zip'],
+    country: ['country'],
+    email: ['e-mail', 'email'],
+    phone: ['phone']
+  };
   const state = { settings: { ...DEFAULTS }, dnrRules: [], tooltip: null, activeLink: null, rescanTimer: 0, editableTarget: null };
 
   const safe = (label, fn) => {
@@ -189,14 +201,32 @@
     return !!(link && link.getClientRects().length && getComputedStyle(link).visibility !== 'hidden');
   }
 
+  function backLinkRegex() {
+    try {
+      return new RegExp(settingText('backLinkText', DEFAULTS.backLinkText), 'i');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function clickBackLink(link) {
+    const motion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!link.animate || motion) return link.click();
+    link.animate([
+      { outline: '0 solid rgba(47, 75, 63, 0)', backgroundColor: 'rgba(47, 75, 63, 0)' },
+      { outline: '2px solid rgba(47, 75, 63, .22)', backgroundColor: 'rgba(47, 75, 63, .08)' },
+      { outline: '0 solid rgba(47, 75, 63, 0)', backgroundColor: 'rgba(47, 75, 63, 0)' }
+    ], { duration: 120, easing: 'ease-out' }).finished.finally(() => link.click());
+  }
+
   function initEscapeKey() {
     document.addEventListener('keydown', event => safe('Escape key failed', () => {
       if (!state.settings.enableEscapeKey || event.key !== 'Escape' || event.ctrlKey || event.shiftKey || event.altKey || event.metaKey || isEditableTarget(event.target)) return;
-      const text = settingText('backLinkText', DEFAULTS.backLinkText).toLowerCase();
-      const backLink = Array.from(document.querySelectorAll('a')).find(link => isVisible(link) && cleanText(link.textContent).toLowerCase() === text);
+      const pattern = backLinkRegex();
+      const backLink = pattern && Array.from(document.querySelectorAll('a')).find(link => isVisible(link) && pattern.test(cleanText(link.textContent)));
       if (!backLink) return;
       event.preventDefault();
-      backLink.click();
+      clickBackLink(backLink);
     }));
   }
 
@@ -216,6 +246,33 @@
     field.value = option.value;
     field.dispatchEvent(new Event('input', { bubbles: true }));
     field.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function setFieldValue(field, value, append = false) {
+    if (!field || value == null || value === '') return false;
+    if (field.tagName === 'SELECT') {
+      selectTestData(field, value);
+      return field.value === value || Array.from(field.options).some(option => option.selected && [option.label, option.textContent].some(text => cleanText(text).toLowerCase() === cleanText(value).toLowerCase()));
+    }
+    if (field.isContentEditable) {
+      if (!append) field.textContent = '';
+      editContent(field, String(value));
+      return true;
+    }
+    if (field.type === 'month' && value === '12/34') value = '2034-12';
+    const setter = Object.getOwnPropertyDescriptor(field.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value')?.set;
+    const start = append && typeof field.selectionStart === 'number' ? field.selectionStart : 0;
+    const end = append && typeof field.selectionEnd === 'number' ? field.selectionEnd : field.value.length;
+    const nextValue = append ? `${field.value.slice(0, start)}${value}${field.value.slice(end)}` : String(value);
+    if (setter) setter.call(field, nextValue);
+    else field.value = nextValue;
+    field.focus();
+    try {
+      if (append && field.setSelectionRange) field.setSelectionRange(start + String(value).length, start + String(value).length);
+    } catch (error) {}
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
   }
 
   function editContent(field, value) {
@@ -239,21 +296,42 @@
   function insertTestData(value) {
     const field = state.editableTarget && document.contains(state.editableTarget) ? state.editableTarget : findEditableField(document.activeElement);
     if (!state.settings.enableTestData || !field || !value) return;
-    if (field.tagName === 'SELECT') return selectTestData(field, value);
-    if (field.isContentEditable) return editContent(field, value);
-    if (field.type === 'month' && value === '12/34') value = '2034-12';
-    const setter = Object.getOwnPropertyDescriptor(field.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value')?.set;
-    const start = typeof field.selectionStart === 'number' ? field.selectionStart : 0;
-    const end = typeof field.selectionEnd === 'number' ? field.selectionEnd : field.value.length;
-    const nextValue = `${field.value.slice(0, start)}${value}${field.value.slice(end)}`;
-    if (setter) setter.call(field, nextValue);
-    else field.value = nextValue;
-    field.focus();
-    try {
-      if (field.setSelectionRange) field.setSelectionRange(start + value.length, start + value.length);
-    } catch (error) {}
-    field.dispatchEvent(new Event('input', { bubbles: true }));
-    field.dispatchEvent(new Event('change', { bubbles: true }));
+    setFieldValue(field, value, true);
+  }
+
+  function parseSelectorMap(value) {
+    return String(value || '').split('\n').reduce((map, line) => {
+      const match = line.match(/^\s*([\w-]+)\s*=\s*(.+)$/);
+      if (match) map[match[1]] = match[2].split(',').map(selector => selector.trim()).filter(Boolean);
+      return map;
+    }, {});
+  }
+
+  function fieldByLabel(key) {
+    const wanted = GUEST_LABELS[key] || [];
+    return Array.from(document.querySelectorAll('label')).map(label => {
+      const text = cleanText(label.textContent).replace(/\*/g, '').replace(/:$/, '').toLowerCase();
+      if (!wanted.some(name => text === name)) return null;
+      const row = label.closest('.CHI_Row, tr, fieldset, div') || label.parentElement;
+      const fields = Array.from((row || document).querySelectorAll('input, textarea, select')).filter(field => field.type !== 'hidden' && findEditableField(field));
+      return fields.find(field => !/decoy/i.test(field.name || field.id || '')) || null;
+    }).find(Boolean);
+  }
+
+  function fieldBySelectors(selectors) {
+    return selectors.map(selector => {
+      try {
+        return document.querySelector(selector);
+      } catch (error) {
+        return null;
+      }
+    }).find(findEditableField);
+  }
+
+  function fillGuestProfile(profile) {
+    if (!state.settings.enableTestData || !profile) return;
+    const selectors = parseSelectorMap(state.settings.guestProfileSelectors || DEFAULTS.guestProfileSelectors);
+    Object.entries(profile).forEach(([key, value]) => setFieldValue(fieldBySelectors(selectors[key] || []) || fieldByLabel(key), value));
   }
 
   function initTestData() {
@@ -261,6 +339,7 @@
     document.addEventListener('focusin', event => setEditableTarget(event.target), true);
     chrome.runtime.onMessage.addListener(message => safe('Test data insert failed', () => {
       if (message && message.action === 'insertTestData') insertTestData(message.value);
+      if (message && message.action === 'fillGuestProfile') fillGuestProfile(message.profile);
     }));
   }
 

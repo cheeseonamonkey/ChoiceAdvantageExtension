@@ -18,7 +18,7 @@ ChoiceAdvantage helper for DNR highlighting, Escape-to-Back, and explicit editab
 ## Config
 - `DNR list` is the guest-name list shown in the popup.
 - `Hover text` and `Underline color` adjust the reminder.
-- `Back link text` is the exact link label Escape clicks.
+- `Back link regex` is matched against visible link text before Escape clicks it.
 - DNR highlighting, Escape back, and the test-data context menu each have their own popup checkbox.
 - Choosing `Street address` starts the address profile used by its city, state, ZIP, address line 2, and phone menu entries.
 - Card-number menu entries are fixed published test values for sandbox/test workflows.

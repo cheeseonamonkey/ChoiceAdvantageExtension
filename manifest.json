@@ -3,7 +3,7 @@
   "name": "ChoiceAdvantage Enhanced",
   "version": "4.2",
   "description": "DNR highlighting, Escape-to-Back, and explicit test-data inserts for ChoiceAdvantage",
-  "permissions": ["storage", "contextMenus", "declarativeNetRequest"],
+  "permissions": ["storage", "contextMenus", "declarativeNetRequest", "activeTab"],
   "background": {
     "service_worker": "background.js"
   },

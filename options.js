@@ -4,6 +4,7 @@ const $root = $('#settings');
 const $saved = $('#saved');
 const $fields = {};
 const $status = {};
+let activeSection = SECTIONS[0]?.key || '';
 let saveTimer = 0;
 let savedTimer = 0;
 
@@ -31,6 +32,16 @@ function renderField(field) {
   const meta = field.key === 'dnrList'
     ? `<div class="meta-row"><span id="dnrCount">0 entries</span><span>${escapeHtml(field.note || '')}</span></div>`
     : field.note ? `<div class="field-note">${escapeHtml(field.note)}</div>` : '';
+  if (field.key === 'guestProfileSelectors') return `<details class="advanced">
+    <summary>Advanced selectors</summary>
+    <div class="advanced-body">
+      <div class="field-shell field-shell--${field.type}">
+        <label class="label" for="${field.key}">${escapeHtml(field.label)}${renderStatus(field)}</label>
+        ${renderControl(field)}
+        ${meta}
+      </div>
+    </div>
+  </details>`;
   return `<div class="field-shell field-shell--${field.type}">
     <label class="label" for="${field.key}">${escapeHtml(field.label)}${renderStatus(field)}</label>
     ${renderControl(field)}
@@ -39,15 +50,25 @@ function renderField(field) {
 }
 
 function mountForm() {
-  $root.html(SECTIONS.map(section => `<details class="group" ${section.open ? 'open' : ''}>
-    <summary>
-      <span>${escapeHtml(section.title)}</span>
-      <span class="group-note">${escapeHtml(section.note || '')}</span>
-    </summary>
-    <div class="group-body">${FIELDS.filter(field => field.section === section.key).map(renderField).join('')}</div>
-  </details>`).join(''));
+  $root.html(`<div class="tabs">${SECTIONS.map(section => `<button type="button" class="tab" data-section="${section.key}">${escapeHtml(section.title)}</button>`).join('')}</div>
+    ${SECTIONS.map(section => `<section class="group" data-section-panel="${section.key}">
+      <div class="group-head"><strong>${escapeHtml(section.title)}</strong><span>${escapeHtml(section.note || '')}</span></div>
+      <div class="group-body">${section.key === 'guestProfile' ? '<button type="button" class="action-button" id="fillGuestProfile">Fill current page</button>' : ''}${FIELDS.filter(field => field.section === section.key).map(renderField).join('')}</div>
+    </section>`).join('')}`);
   FIELDS.forEach(field => { $fields[field.key] = $(`#${field.key}`); });
   FIELDS.filter(field => field.status).forEach(field => { $status[field.key] = $(`#${field.key}Status`); });
+  $root.on('click', '.tab', event => {
+    activeSection = event.currentTarget.dataset.section;
+    syncUI();
+  });
+  $root.on('click', '#fillGuestProfile', () => {
+    chrome.runtime.sendMessage({ action: 'fillActiveGuestProfile' }, () => {
+      if (chrome.runtime.lastError) return console.error('[CA Enhanced] Guest profile fill failed:', chrome.runtime.lastError);
+      $saved.text('Sent').addClass('show');
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(() => $saved.removeClass('show').text('Saved'), 1000);
+    });
+  });
 }
 
 function setStatus(key, message) {
@@ -60,9 +81,17 @@ function refreshStatus() {
   const validEntries = entries.filter(line => line.replace(/,/g, ' ').split(/\s+/).filter(Boolean).length >= 2);
   $('#dnrCount').text(`${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`);
   setStatus('dnrList', entries.length && validEntries.length !== entries.length ? 'Some lines need both first and last names.' : '');
+  try {
+    new RegExp($fields.backLinkText.val() || DEFAULTS.backLinkText, 'i');
+    setStatus('backLinkText', '');
+  } catch (error) {
+    setStatus('backLinkText', 'Invalid regular expression.');
+  }
 }
 
 function syncUI() {
+  $('.tab').each((_, tab) => $(tab).toggleClass('active', tab.dataset.section === activeSection));
+  $('[data-section-panel]').each((_, panel) => $(panel).prop('hidden', panel.dataset.sectionPanel !== activeSection));
   FIELDS.forEach(field => {
     if (field.dependsOn) $fields[field.key].prop('disabled', !$fields[field.dependsOn].prop('checked'));
   });
@@ -70,7 +99,7 @@ function syncUI() {
 }
 
 function readForm() {
-  return Object.fromEntries(FIELDS.map(field => [field.key, field.type === 'toggle' ? $fields[field.key].prop('checked') : $fields[field.key].val() || field.defaultValue || '']));
+  return Object.fromEntries(FIELDS.map(field => [field.key, field.type === 'toggle' ? $fields[field.key].prop('checked') : $fields[field.key].val()]));
 }
 
 function saveSettings() {

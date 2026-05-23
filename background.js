@@ -7,6 +7,7 @@ const MENU_IDS = {
   firstName: 'caTestFirstName',
   lastName: 'caTestLastName',
   fullName: 'caTestFullName',
+  guestProfile: 'caTestGuestProfile',
   address: 'caTestAddress',
   street: 'caTestStreet',
   unit: 'caTestUnit',
@@ -44,13 +45,14 @@ const LEGACY_RULE_IDS = [1, 2, 3, ...Array.from({ length: 50 }, (_, index) => 10
 const CHOICEADVANTAGE_PAGES = ['https://choiceadvantage.com/*', 'https://*.choiceadvantage.com/*'];
 
 const pick = values => values[Math.floor(Math.random() * values.length)];
-const insertValue = value => ({ action: 'insertTestData', value });
-const menu = (id, title, parentId = MENU_IDS.root) => chrome.contextMenus.create({ id, title, parentId, contexts: ['editable'], documentUrlPatterns: CHOICEADVANTAGE_PAGES });
+const testDataMessage = value => value && value.action ? value : { action: 'insertTestData', value };
+const menu = (id, title, parentId = MENU_IDS.root, contexts = ['editable']) => chrome.contextMenus.create({ id, title, parentId, contexts, documentUrlPatterns: CHOICEADVANTAGE_PAGES });
 
 function buildMenus(enabled) {
   chrome.contextMenus.removeAll(() => {
     if (!enabled) return;
-    chrome.contextMenus.create({ id: MENU_IDS.root, title: 'ChoiceAdvantage Test Data', contexts: ['editable'], documentUrlPatterns: CHOICEADVANTAGE_PAGES });
+    chrome.contextMenus.create({ id: MENU_IDS.root, title: 'ChoiceAdvantage Test Data', contexts: ['page', 'editable'], documentUrlPatterns: CHOICEADVANTAGE_PAGES });
+    menu(MENU_IDS.guestProfile, 'Fill guest profile', MENU_IDS.root, ['page', 'editable']);
     menu(MENU_IDS.firstName, 'First name');
     menu(MENU_IDS.lastName, 'Last name');
     menu(MENU_IDS.fullName, 'Full name');
@@ -87,6 +89,13 @@ function valueFor(id) {
   return TEST_CARDS.find(([brand]) => id === `caTestCard:${brand}`)?.[1];
 }
 
+function guestProfile() {
+  const address = pick(ADDRESS_PROFILES);
+  const firstName = pick(FIRST_NAMES);
+  const lastName = pick(LAST_NAMES);
+  return { firstName, lastName, address1: address.street, address2: address.unit, city: address.city, state: address.state, zip: address.zip, country: 'US', email: `${firstName}.${lastName}@example.test`.toLowerCase(), phone: address.phone };
+}
+
 function getAddressValue(info, tab, id, callback) {
   const key = ADDRESS_KEYS[id];
   if (!key) return callback();
@@ -103,7 +112,7 @@ function getAddressValue(info, tab, id, callback) {
 
 function sendInsert(info, tab, value) {
   if (!value || !tab || !tab.id) return;
-  chrome.tabs.sendMessage(tab.id, insertValue(value), info.frameId == null ? undefined : { frameId: info.frameId }, () => {
+  chrome.tabs.sendMessage(tab.id, testDataMessage(value), info.frameId == null ? undefined : { frameId: info.frameId }, () => {
     if (chrome.runtime.lastError) console.warn('[CA Enhanced] Test data insert failed:', chrome.runtime.lastError.message);
   });
 }
@@ -120,7 +129,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'sync' && changes.enableTestData) buildMenus(changes.enableTestData.newValue);
 });
 
+chrome.runtime.onMessage.addListener(message => {
+  if (!message || message.action !== 'fillActiveGuestProfile') return;
+  chrome.tabs.query({ active: true, currentWindow: true }, tabs => sendInsert({}, tabs[0], { action: 'fillGuestProfile', profile: guestProfile() }));
+});
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === MENU_IDS.guestProfile) return sendInsert(info, tab, { action: 'fillGuestProfile', profile: guestProfile() });
   if (ADDRESS_KEYS[info.menuItemId] && tab && tab.id) return getAddressValue(info, tab, info.menuItemId, value => sendInsert(info, tab, value));
   sendInsert(info, tab, valueFor(info.menuItemId));
 });

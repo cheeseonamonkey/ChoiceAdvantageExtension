@@ -20,12 +20,21 @@
   .saved { @apply text-[11px] font-bold opacity-0 transition duration-150 whitespace-nowrap -translate-y-0.5; color: #2f6b43; }
   .saved.show { @apply opacity-100 translate-y-0; }
   .settings { @apply grid gap-1.5; }
+  .tabs { @apply grid grid-cols-2 gap-1 rounded-[10px] border border-[#eadfce] bg-[#f8f1e6] p-1; }
+  .tab { @apply h-[28px] rounded-[8px] border-0 bg-transparent text-[12px] font-bold text-[#6c6255]; }
+  .tab.active { @apply bg-white text-[#2f4b3f] shadow-[0_1px_6px_rgba(123,97,58,.12)]; }
   .group { @apply rounded-[12px] border border-[#eadfce] bg-[#fcfaf5] overflow-hidden; }
-  .group summary { @apply flex cursor-pointer list-none items-start justify-between gap-2 bg-[#f8f1e6] px-2 py-1.5 text-[12px] font-bold text-[#3d352c]; }
-  .group summary::-webkit-details-marker { display: none; }
-  .group[open] summary { @apply border-b border-[#eadfce]; }
-  .group-note { @apply max-w-[190px] text-right text-[10px] leading-[1.25] font-medium text-[#7b6f61]; }
+  .group[hidden] { display: none; }
+  .group-head { @apply flex items-start justify-between gap-2 bg-[#f8f1e6] px-2 py-1.5 text-[12px] text-[#3d352c] border-b border-[#eadfce]; }
+  .group-head span { @apply max-w-[190px] text-right text-[10px] leading-[1.25] font-medium text-[#7b6f61]; }
   .group-body { @apply grid gap-1.5 p-1.5; }
+  .action-button { @apply h-[32px] rounded-[9px] border border-[#b8924f] bg-[#2f4b3f] px-2 text-[12px] font-bold text-white; }
+  .action-button:hover { @apply bg-[#3b5d4f]; }
+  .advanced { @apply rounded-[9px] border border-[#eadfce] bg-white overflow-hidden; }
+  .advanced summary { @apply cursor-pointer list-none px-2 py-1.5 text-[11px] font-bold text-[#6c6255]; }
+  .advanced summary::-webkit-details-marker { display: none; }
+  .advanced[open] summary { @apply border-b border-[#eadfce]; }
+  .advanced-body { @apply p-1.5; }
   .toggle { @apply grid grid-cols-[auto_1fr] gap-1.5 items-start rounded-[10px] border border-[#eadfce] bg-white px-2 py-1.5; }
   .toggle input { @apply mt-0.5 accent-[#b07a2b]; }
   .toggle strong { @apply block text-[12px] text-[#3d352c]; }
@@ -37,6 +46,7 @@
   textarea, input { @apply px-2 py-1.5; }
   textarea { @apply min-h-[64px] resize-y text-[11px] leading-[1.38] font-medium; font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace; }
   #dnrList { min-height: 124px; }
+  #guestProfileSelectors { min-height: 108px; }
   input, select { @apply h-[30px] text-[12px] font-medium; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
   select { @apply px-2; }
   textarea:focus, input:focus, select:focus { @apply border-[#b8924f] shadow-[0_0_0_3px_rgba(184,146,79,.18)]; }
