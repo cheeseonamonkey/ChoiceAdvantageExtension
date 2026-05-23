@@ -409,6 +409,10 @@
   .action-button:hover {
     background-color: #3b5d4f;
   }
+  .action-button:disabled {
+    cursor: not-allowed;
+    opacity: 55%;
+  }
   .advanced {
     overflow: hidden;
     border-radius: 9px;
@@ -436,6 +440,8 @@
     border-color: #eadfce;
   }
   .advanced-body {
+    display: grid;
+    gap: calc(var(--spacing) * 1.5);
     padding: calc(var(--spacing) * 1.5);
   }
   .toggle {
@@ -509,6 +515,12 @@
   }
   #dnrList {
     min-height: 124px;
+  }
+  #guestFirstNames, #guestLastNames {
+    min-height: 76px;
+  }
+  #guestAddresses {
+    min-height: 104px;
   }
   #guestProfileSelectors {
     min-height: 108px;

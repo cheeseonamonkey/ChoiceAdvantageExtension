@@ -42,7 +42,6 @@
     firstName: ['first name'],
     lastName: ['last name'],
     address1: ['address 1', 'address line 1'],
-    address2: ['address 2', 'address line 2'],
     city: ['city'],
     state: ['state'],
     zip: ['postal code', 'zip code', 'zip'],
@@ -50,7 +49,7 @@
     email: ['e-mail', 'email'],
     phone: ['phone']
   };
-  const state = { settings: { ...DEFAULTS }, dnrRules: [], tooltip: null, activeLink: null, rescanTimer: 0, editableTarget: null };
+  const state = { settings: { ...DEFAULTS }, dnrRules: [], tooltip: null, activeLink: null, rescanTimer: 0 };
 
   const safe = (label, fn) => {
     try {
@@ -236,10 +235,6 @@
     return field.isContentEditable || /^(text|search|tel|url|email|number|month)?$/.test(field.type) || /^(TEXTAREA|SELECT)$/.test(field.tagName) ? field : null;
   }
 
-  function setEditableTarget(target) {
-    state.editableTarget = findEditableField(target);
-  }
-
   function selectTestData(field, value) {
     const option = Array.from(field.options).find(item => [item.value, item.label, item.textContent].some(text => cleanText(text).toLowerCase() === cleanText(value).toLowerCase()));
     if (!option) return;
@@ -259,7 +254,6 @@
       editContent(field, String(value));
       return true;
     }
-    if (field.type === 'month' && value === '12/34') value = '2034-12';
     const setter = Object.getOwnPropertyDescriptor(field.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value')?.set;
     const start = append && typeof field.selectionStart === 'number' ? field.selectionStart : 0;
     const end = append && typeof field.selectionEnd === 'number' ? field.selectionEnd : field.value.length;
@@ -291,12 +285,6 @@
       selection.addRange(range);
     }
     field.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value }));
-  }
-
-  function insertTestData(value) {
-    const field = state.editableTarget && document.contains(state.editableTarget) ? state.editableTarget : findEditableField(document.activeElement);
-    if (!state.settings.enableTestData || !field || !value) return;
-    setFieldValue(field, value, true);
   }
 
   function parseSelectorMap(value) {
@@ -335,10 +323,7 @@
   }
 
   function initTestData() {
-    document.addEventListener('contextmenu', event => setEditableTarget(event.target), true);
-    document.addEventListener('focusin', event => setEditableTarget(event.target), true);
     chrome.runtime.onMessage.addListener(message => safe('Test data insert failed', () => {
-      if (message && message.action === 'insertTestData') insertTestData(message.value);
       if (message && message.action === 'fillGuestProfile') fillGuestProfile(message.profile);
     }));
   }

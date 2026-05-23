@@ -1,6 +1,6 @@
 # ChoiceAdvantage Enhanced v4.2
 
-ChoiceAdvantage helper for DNR highlighting, Escape-to-Back, and explicit editable-field test-data inserts.
+ChoiceAdvantage helper for DNR highlighting, Escape-to-Back, and guest-profile test-data fill.
 
 [Repo](https://github.com/cheeseonamonkey/ChoiceAdvantageExtension) | [Releases](https://github.com/cheeseonamonkey/ChoiceAdvantageExtension/releases)
 
@@ -8,7 +8,7 @@ ChoiceAdvantage helper for DNR highlighting, Escape-to-Back, and explicit editab
 - Underlines DNR matches in table links.
 - Shows a hover reminder for highlighted matches.
 - Clicks the visible page Back link when Escape is pressed outside editable fields.
-- Inserts fake names, coherent address parts, state-matched test phones, published test card numbers, and `12/34` from the editable-field context menu.
+- Fills visible guest-profile fields with configurable fake names, address, email, and phone data.
 
 ## Install
 1. Best non-dev-mode path: publish the zip to the Chrome Web Store or Edge Add-ons.
@@ -19,9 +19,8 @@ ChoiceAdvantage helper for DNR highlighting, Escape-to-Back, and explicit editab
 - `DNR list` is the guest-name list shown in the popup.
 - `Hover text` and `Underline color` adjust the reminder.
 - `Back link regex` is matched against visible link text before Escape clicks it.
-- DNR highlighting, Escape back, and the test-data context menu each have their own popup checkbox.
-- Choosing `Street address` starts the address profile used by its city, state, ZIP, address line 2, and phone menu entries.
-- Card-number menu entries are fixed published test values for sandbox/test workflows.
+- DNR highlighting, Escape back, and guest-profile filling each have their own popup checkbox.
+- Guest-profile generated values and field selectors live under advanced controls.
 - This release keeps the network-rule permission only to clear blocker rules from older installs.
 
 ## Automation

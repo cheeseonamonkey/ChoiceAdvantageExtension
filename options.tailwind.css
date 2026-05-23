@@ -30,11 +30,12 @@
   .group-body { @apply grid gap-1.5 p-1.5; }
   .action-button { @apply h-[32px] rounded-[9px] border border-[#b8924f] bg-[#2f4b3f] px-2 text-[12px] font-bold text-white; }
   .action-button:hover { @apply bg-[#3b5d4f]; }
+  .action-button:disabled { @apply cursor-not-allowed opacity-55; }
   .advanced { @apply rounded-[9px] border border-[#eadfce] bg-white overflow-hidden; }
   .advanced summary { @apply cursor-pointer list-none px-2 py-1.5 text-[11px] font-bold text-[#6c6255]; }
   .advanced summary::-webkit-details-marker { display: none; }
   .advanced[open] summary { @apply border-b border-[#eadfce]; }
-  .advanced-body { @apply p-1.5; }
+  .advanced-body { @apply grid gap-1.5 p-1.5; }
   .toggle { @apply grid grid-cols-[auto_1fr] gap-1.5 items-start rounded-[10px] border border-[#eadfce] bg-white px-2 py-1.5; }
   .toggle input { @apply mt-0.5 accent-[#b07a2b]; }
   .toggle strong { @apply block text-[12px] text-[#3d352c]; }
@@ -46,6 +47,8 @@
   textarea, input { @apply px-2 py-1.5; }
   textarea { @apply min-h-[64px] resize-y text-[11px] leading-[1.38] font-medium; font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace; }
   #dnrList { min-height: 124px; }
+  #guestFirstNames, #guestLastNames { min-height: 76px; }
+  #guestAddresses { min-height: 104px; }
   #guestProfileSelectors { min-height: 108px; }
   input, select { @apply h-[30px] text-[12px] font-medium; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
   select { @apply px-2; }
