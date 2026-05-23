@@ -1,34 +1,87 @@
 # ChoiceAdvantage Enhanced v4.2
 
-ChoiceAdvantage helper for DNR highlighting, Escape-to-Back, and guest-profile test-data fill.
+Small Chrome/Edge extension for ChoiceAdvantage work:
 
-[Repo](https://github.com/cheeseonamonkey/ChoiceAdvantageExtension) | [Releases](https://github.com/cheeseonamonkey/ChoiceAdvantageExtension/releases)
-
-## What It Does
-- Underlines DNR matches in table links.
-- Shows a hover reminder for highlighted matches.
-- Clicks the visible page Back link when Escape is pressed outside editable fields.
-- Fills visible guest-profile fields with configurable fake names, address, email, and phone data.
+- highlights DNR names in table links
+- clicks the visible Back link when Escape is pressed outside editable fields
+- fills visible guest-profile fields with configurable fake test data
 
 ## Install
-1. Best non-dev-mode path: publish the zip to the Chrome Web Store or Edge Add-ons.
-2. For local testing, extract the ZIP, open `chrome://extensions/`, enable Developer mode, and load unpacked.
-3. For managed devices, use a signed CRX plus enterprise policy.
 
-## Config
-- `DNR list` is the guest-name list shown in the popup.
-- `Hover text` and `Underline color` adjust the reminder.
-- `Back link regex` is matched against visible link text before Escape clicks it.
-- DNR highlighting, Escape back, and guest-profile filling each have their own popup checkbox.
-- Guest-profile generated values and field selectors live under advanced controls.
-- This release keeps the network-rule permission only to clear blocker rules from older installs.
+### Unpacked
 
-## Automation
-- CI checks syntax, validates `manifest.json`, rebuilds `options.css`, and uploads a zip artifact.
-- `Dist` packages a clean zip on pushes to `main` / `master`.
-- Release runs on `main` / `master` pushes and `v*` tags, then publishes both the zip and packaged CRX for the manifest version.
-- Set the `CHROME_EXTENSION_PEM_BASE64` repository secret to a base64-encoded PEM key if release CRXs should keep the same extension ID across workflow runs.
+Use this for development or quick local installs.
+
+1. Clone or download this repo.
+2. Run `npm install` once if you need to rebuild popup CSS.
+3. Open `chrome://extensions/` or `edge://extensions/`.
+4. Enable Developer mode.
+5. Click `Load unpacked` and select the repo folder.
+6. After code changes, click the extension's Reload button on the extensions page.
+
+### CRX
+
+Use this when you want a packaged extension file.
+
+1. Build the zip:
+
+   ```sh
+   scripts/package-extension.sh dist/choiceadvantage-enhanced.zip
+   ```
+
+2. Build the CRX:
+
+   ```sh
+   scripts/package-crx.sh dist/choiceadvantage-enhanced.zip dist/choiceadvantage-enhanced.crx
+   ```
+
+3. To keep the same extension ID, pass the same key each time:
+
+   ```sh
+   scripts/package-crx.sh dist/choiceadvantage-enhanced.zip dist/choiceadvantage-enhanced.crx key.pem
+   ```
+
+4. Install the CRX through enterprise policy or the browser's supported managed-extension flow.
+
+## Use
+
+- Right-click a ChoiceAdvantage page and choose `Fill guest profile`.
+- Or open the extension popup, go to `Guest Profile`, and click `Fill current page`.
+- The fill skips fields that are not present on the current page.
+- Address line 2 is intentionally not filled by default.
+
+## Settings
+
+- `DNR list`: one guest per line. Use `LAST, FIRST` or `FIRST LAST`.
+- `Hover text` and `Underline color`: DNR reminder styling.
+- `Back link regex`: case-insensitive pattern matched against visible link text.
+- `Guest profile fill`: enables the popup and context-menu fill action.
+- `Guest Profile > Advanced generated values`: editable first names, last names, addresses, and optional `-son` last names.
+- `Guest Profile > Advanced selectors`: override field selectors if ChoiceAdvantage markup changes.
+
+## Build Workflow
+
+- Rebuild popup CSS after editing `options.tailwind.css`:
+
+  ```sh
+  npm run build:css
+  ```
+
+- Package a zip:
+
+  ```sh
+  scripts/package-extension.sh dist/choiceadvantage-enhanced.zip
+  ```
+
+- Package a CRX:
+
+  ```sh
+  scripts/package-crx.sh dist/choiceadvantage-enhanced.zip dist/choiceadvantage-enhanced.crx
+  ```
 
 ## Troubleshooting
-- Reload the extension at `chrome://extensions/` if it seems inactive.
-- Warning badges in the popup mean a DNR entry needs both first and last names.
+
+- Reload the extension at `chrome://extensions/` after local changes.
+- If `Fill current page` does nothing, confirm the active tab is a `choiceadvantage.com` page.
+- Warning badges in the popup mean a setting needs attention, such as an invalid Back regex or incomplete DNR entry.
+- This release keeps the network-rule permission only to clear blocker rules from older installs.
