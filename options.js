@@ -4,7 +4,8 @@ const $root = $('#settings');
 const $saved = $('#saved');
 const $fields = {};
 const $status = {};
-let activeSection = SECTIONS[0]?.key || '';
+const SECTION_KEY = 'caEnhancedActiveSection';
+let activeSection = localStorage.getItem(SECTION_KEY) || SECTIONS[0]?.key || '';
 let saveTimer = 0;
 let savedTimer = 0;
 
@@ -62,6 +63,7 @@ function mountForm() {
   FIELDS.filter(field => field.status).forEach(field => { $status[field.key] = $(`#${field.key}Status`); });
   $root.on('click', '.tab', event => {
     activeSection = event.currentTarget.dataset.section;
+    localStorage.setItem(SECTION_KEY, activeSection);
     syncUI();
   });
   $root.on('click', '#fillGuestProfile', () => {
