@@ -2,6 +2,15 @@
 (function() {
   'use strict';
 
+  const injectScript = src => {
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL(src);
+    script.async = false;
+    script.onload = script.onerror = () => script.remove();
+    (document.documentElement || document.head).insertBefore(script, (document.documentElement || document.head).firstChild);
+  };
+  injectScript('navigation-polyfill.js');
+
   const { DEFAULTS, cleanText } = globalThis.CA_ENHANCED_SETTINGS;
   const LOG = '[CA Enhanced]';
   const HIGHLIGHT = {
