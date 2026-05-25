@@ -48,13 +48,49 @@ function guestProfile(settings) {
   return { firstName, lastName, address1: address.street, city: address.city, state: address.state, zip: address.zip, country: 'US', email: `${firstName}.${lastName}@example.test`.toLowerCase(), phone: address.phone };
 }
 
-function sendProfile(tab, frameId) {
-  if (!tab || !tab.id) return;
+function sendTabMessage(tabId, frameId, message, callback) {
+  if (frameId == null) chrome.tabs.sendMessage(tabId, message, callback);
+  else chrome.tabs.sendMessage(tabId, message, { frameId }, callback);
+}
+
+function mergeFillResult(best, response) {
+  if (!response) return best;
+  if (response.ok) return { ok: true, filled: response.filled || 0, expected: response.expected || 0 };
+  return (response.filled || 0) > (best.filled || 0) ? response : best;
+}
+
+function sendProfileToFrames(tabId, frameIds, message, done) {
+  let best = { ok: false, filled: 0, expected: 0 };
+  let remaining = frameIds.length;
+  frameIds.forEach(frameId => sendTabMessage(tabId, frameId, message, response => {
+    if (!chrome.runtime.lastError) best = mergeFillResult(best, response);
+    if (--remaining === 0) done(best);
+  }));
+}
+
+function sendProfileToTab(tab, message, done) {
+  chrome.webNavigation.getAllFrames({ tabId: tab.id }, frames => {
+    const frameIds = chrome.runtime.lastError || !frames ? [0] : frames.map(frame => frame.frameId);
+    sendProfileToFrames(tab.id, frameIds.length ? frameIds : [0], message, done);
+  });
+}
+
+function sendProfile(tab, frameId, done = () => {}) {
+  if (!tab || !tab.id) return done(false);
   chrome.storage.sync.get(DEFAULTS, settings => {
-    if (chrome.runtime.lastError) return console.warn('[CA Enhanced] Guest profile settings load failed:', chrome.runtime.lastError.message);
-    if (!settings.enableTestData) return;
-    chrome.tabs.sendMessage(tab.id, { action: 'fillGuestProfile', profile: guestProfile(settings) }, frameId == null ? undefined : { frameId }, () => {
-      if (chrome.runtime.lastError) console.warn('[CA Enhanced] Guest profile fill failed:', chrome.runtime.lastError.message);
+    if (chrome.runtime.lastError) {
+      console.warn('[CA Enhanced] Guest profile settings load failed:', chrome.runtime.lastError.message);
+      return done(false);
+    }
+    if (!settings.enableTestData) return done(false);
+    const message = { action: 'fillGuestProfile', profile: guestProfile(settings) };
+    if (frameId == null) return sendProfileToTab(tab, message, result => done(result.ok));
+    sendTabMessage(tab.id, frameId, message, response => {
+      if (!chrome.runtime.lastError && response && response.ok) return done(true);
+      sendProfileToFrames(tab.id, frameId === 0 ? [0] : [frameId, 0], message, result => {
+        if (!result.ok) console.warn('[CA Enhanced] Guest profile fill failed: no matching fields filled');
+        done(result.ok);
+      });
     });
   });
 }
@@ -71,8 +107,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'sync' && changes.enableTestData) buildMenus(changes.enableTestData.newValue);
 });
 
-chrome.runtime.onMessage.addListener(message => {
-  if (message && message.action === 'fillActiveGuestProfile') chrome.tabs.query({ active: true, currentWindow: true }, tabs => sendProfile(tabs[0]));
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || message.action !== 'fillActiveGuestProfile') return;
+  chrome.tabs.query({ active: true, currentWindow: true }, tabs => sendProfile(tabs[0], null, ok => sendResponse({ ok })));
+  return true;
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {

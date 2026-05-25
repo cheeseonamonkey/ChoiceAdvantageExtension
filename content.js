@@ -2,15 +2,6 @@
 (function() {
   'use strict';
 
-  const injectScript = src => {
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL(src);
-    script.async = false;
-    script.onload = script.onerror = () => script.remove();
-    (document.documentElement || document.head).insertBefore(script, (document.documentElement || document.head).firstChild);
-  };
-  injectScript('navigation-polyfill.js');
-
   const { DEFAULTS, cleanText } = globalThis.CA_ENHANCED_SETTINGS;
   const LOG = '[CA Enhanced]';
   const HIGHLIGHT = {
@@ -58,7 +49,9 @@
     email: ['e-mail', 'email'],
     phone: ['phone']
   };
+  const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
   const state = { settings: { ...DEFAULTS }, dnrRules: [], tooltip: null, activeLink: null, rescanTimer: 0 };
+  let settingsReady = Promise.resolve();
 
   const safe = (label, fn) => {
     try {
@@ -118,7 +111,7 @@
     if (!tooltip || !link) return;
     const rect = link.getBoundingClientRect();
     const top = rect.top > tooltip.offsetHeight + 16 ? rect.top - tooltip.offsetHeight - 10 : rect.bottom + 10;
-    const left = Math.min(window.innerWidth - tooltip.offsetWidth - 8, Math.max(8, rect.left + (rect.width - tooltip.offsetWidth) / 2));
+    const left = Math.max(8, Math.min(window.innerWidth - tooltip.offsetWidth - 8, rect.left + (rect.width - tooltip.offsetWidth) / 2));
     tooltip.style.top = `${Math.max(8, top)}px`;
     tooltip.style.left = `${left}px`;
   }
@@ -202,7 +195,7 @@
 
   function isEditableTarget(target) {
     if (!target || target.nodeType !== Node.ELEMENT_NODE) return false;
-    return !!target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="dialog"], [role="menu"]');
+    return !!target.closest(`${EDITABLE_SELECTOR}, [role="dialog"], [role="menu"]`);
   }
 
   function isVisible(link) {
@@ -221,10 +214,10 @@
     const motion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!link.animate || motion) return link.click();
     link.animate([
-      { outline: '0 solid rgba(47, 75, 63, 0)', backgroundColor: 'rgba(47, 75, 63, 0)' },
-      { outline: '2px solid rgba(47, 75, 63, .22)', backgroundColor: 'rgba(47, 75, 63, .08)' },
-      { outline: '0 solid rgba(47, 75, 63, 0)', backgroundColor: 'rgba(47, 75, 63, 0)' }
-    ], { duration: 120, easing: 'ease-out' }).finished.finally(() => link.click());
+      { backgroundColor: 'rgba(184, 146, 79, 0)', boxShadow: '0 0 0 0 rgba(184, 146, 79, 0)', transform: 'translateY(0)' },
+      { backgroundColor: 'rgba(184, 146, 79, .24)', boxShadow: '0 0 0 3px rgba(184, 146, 79, .22)', transform: 'translateY(1px)' },
+      { backgroundColor: 'rgba(184, 146, 79, .12)', boxShadow: '0 0 0 0 rgba(184, 146, 79, 0)', transform: 'translateY(0)' }
+    ], { duration: 180, easing: 'ease-out' }).finished.finally(() => link.click());
   }
 
   function initEscapeKey() {
@@ -249,7 +242,7 @@
   }
 
   function findEditableField(target) {
-    const field = target && target.closest ? target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]') : null;
+    const field = target && target.closest ? target.closest(EDITABLE_SELECTOR) : null;
     if (!field || field.disabled || field.readOnly || field.type === 'password') return null;
     return field.isContentEditable || /^(text|search|tel|url|email|number|month)?$/.test(field.type) || /^(TEXTAREA|SELECT)$/.test(field.tagName) ? field : null;
   }
@@ -336,15 +329,21 @@
   }
 
   function fillGuestProfile(profile) {
-    if (!state.settings.enableTestData || !profile) return;
+    if (!state.settings.enableTestData || !profile) return 0;
     const selectors = parseSelectorMap(state.settings.guestProfileSelectors || DEFAULTS.guestProfileSelectors);
-    Object.entries(profile).forEach(([key, value]) => setFieldValue(fieldBySelectors(selectors[key] || []) || fieldByLabel(key), value));
+    return Object.entries(profile).reduce((count, [key, value]) => count + (setFieldValue(fieldBySelectors(selectors[key] || []) || fieldByLabel(key), value) ? 1 : 0), 0);
   }
 
   function initTestData() {
-    chrome.runtime.onMessage.addListener(message => safe('Test data insert failed', () => {
-      if (message && message.action === 'fillGuestProfile') fillGuestProfile(message.profile);
-    }));
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (!message || message.action !== 'fillGuestProfile') return;
+      settingsReady.then(() => {
+        const expected = Object.keys(message.profile || {}).length;
+        const filled = safe('Test data insert failed', () => fillGuestProfile(message.profile)) || 0;
+        sendResponse({ ok: expected > 0 && filled === expected, partial: filled > 0, filled, expected });
+      });
+      return true;
+    });
   }
 
   function initStorageSync() {
@@ -355,20 +354,22 @@
     }));
   }
 
-  chrome.storage.sync.get(DEFAULTS, items => safe('Init failed', () => {
-    if (chrome.runtime.lastError) {
-      console.error(`${LOG} Failed to load settings:`, chrome.runtime.lastError);
-      items = DEFAULTS;
-    }
-    const boot = () => {
+  initEscapeKey();
+  initF12Block();
+  initTestData();
+  initStorageSync();
+
+  settingsReady = new Promise(resolve => {
+    chrome.storage.sync.get(DEFAULTS, items => safe('Init failed', () => {
+      if (chrome.runtime.lastError) {
+        console.error(`${LOG} Failed to load settings:`, chrome.runtime.lastError);
+        items = DEFAULTS;
+      }
       applySettings(items || DEFAULTS);
-      initDNRUI();
-      initEscapeKey();
-      initF12Block();
-      initTestData();
-      initStorageSync();
-    };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
-    else boot();
-  }));
+      resolve();
+      const boot = () => initDNRUI();
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+      else boot();
+    }));
+  });
 })();

@@ -5,12 +5,22 @@ const $saved = $('#saved');
 const $fields = {};
 const $status = {};
 const SECTION_KEY = 'caEnhancedActiveSection';
-let activeSection = localStorage.getItem(SECTION_KEY) || SECTIONS[0]?.key || '';
+const COUNTED_FIELDS = FIELDS.filter(field => field.type === 'textarea');
+const savedSection = localStorage.getItem(SECTION_KEY);
+let activeSection = SECTIONS.some(section => section.key === savedSection) ? savedSection : SECTIONS[0]?.key || '';
 let saveTimer = 0;
 let savedTimer = 0;
+let pendingSaves = {};
+let activeSave = Promise.resolve(true);
+let fillInProgress = false;
 
 const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const renderStatus = field => field.status ? ` <span class="status" id="${field.key}Status" hidden>!</span>` : '';
+const pluralize = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+const countLabel = field => field.key === 'dnrList' ? ['entry', 'entries'] : ['line'];
+const countLines = field => String($fields[field.key]?.val() || '').split('\n').map(line => line.trim()).filter(Boolean).length;
+const hasPendingSaves = () => Object.keys(pendingSaves).length > 0;
+const syncBytes = value => new TextEncoder().encode(String(value || '')).length;
 
 function renderControl(field) {
   const attrs = [`id="${field.key}"`, field.title ? `title="${escapeHtml(field.title)}"` : ''];
@@ -18,6 +28,15 @@ function renderControl(field) {
   if (field.type === 'textarea') return `<textarea ${attrs.join(' ')} placeholder="${escapeHtml(field.placeholder || '')}"></textarea>`;
   if (field.type === 'color') return `<input ${attrs.join(' ')} type="color">`;
   return `<input ${attrs.join(' ')} type="text" placeholder="${escapeHtml(field.placeholder || '')}">`;
+}
+
+function renderMeta(field) {
+  const note = escapeHtml(field.note || field.description || '');
+  if (!COUNTED_FIELDS.includes(field)) return note ? `<div class="field-note">${note}</div>` : '';
+  return `<div class="meta-row">
+    <span id="${field.key}Count">${pluralize(0, ...countLabel(field))}</span>
+    <span>${note}</span>
+  </div>`;
 }
 
 function renderField(field) {
@@ -30,13 +49,10 @@ function renderField(field) {
       </div>
     </label>`;
   }
-  const meta = field.key === 'dnrList'
-    ? `<div class="meta-row"><span id="dnrCount">0 entries</span><span>${escapeHtml(field.note || '')}</span></div>`
-    : field.note ? `<div class="field-note">${escapeHtml(field.note)}</div>` : '';
   return `<div class="field-shell field-shell--${field.type}">
     <label class="label" for="${field.key}">${escapeHtml(field.label)}${renderStatus(field)}</label>
     ${renderControl(field)}
-    ${meta}
+    ${renderMeta(field)}
   </div>`;
 }
 
@@ -67,11 +83,26 @@ function mountForm() {
     syncUI();
   });
   $root.on('click', '#fillGuestProfile', () => {
-    chrome.runtime.sendMessage({ action: 'fillActiveGuestProfile' }, () => {
-      if (chrome.runtime.lastError) return console.error('[CA Enhanced] Guest profile fill failed:', chrome.runtime.lastError);
-      $saved.text('Sent').addClass('show');
-      clearTimeout(savedTimer);
-      savedTimer = setTimeout(() => $saved.removeClass('show').text('Saved'), 1000);
+    if (fillInProgress) return;
+    fillInProgress = true;
+    syncUI();
+    showSaved(hasPendingSaves() ? 'Saving' : 'Filling', 'pending', 0);
+    flushSaves().then(ok => {
+      if (!ok) {
+        fillInProgress = false;
+        syncUI();
+        return showSaved('Failed', 'failed', 0);
+      }
+      showSaved('Filling', 'pending', 0);
+      chrome.runtime.sendMessage({ action: 'fillActiveGuestProfile' }, response => {
+        fillInProgress = false;
+        syncUI();
+        if (chrome.runtime.lastError) {
+          console.error('[CA Enhanced] Guest profile fill failed:', chrome.runtime.lastError);
+          return showSaved('Failed', 'failed');
+        }
+        showSaved(response && response.ok ? 'Sent' : 'Failed', response && response.ok ? '' : 'failed');
+      });
     });
   });
 }
@@ -84,38 +115,94 @@ function setStatus(key, message) {
 function refreshStatus() {
   const entries = parseDnrEntries($fields.dnrList.val());
   const validEntries = entries.filter(line => line.replace(/,/g, ' ').split(/\s+/).filter(Boolean).length >= 2);
-  $('#dnrCount').text(`${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`);
+  COUNTED_FIELDS.forEach(field => $(`#${field.key}Count`).text(pluralize(countLines(field), ...countLabel(field))));
   setStatus('dnrList', entries.length && validEntries.length !== entries.length ? 'Some lines need both first and last names.' : '');
-  try {
-    new RegExp($fields.backLinkText.val() || DEFAULTS.backLinkText, 'i');
-    setStatus('backLinkText', '');
-  } catch (error) {
-    setStatus('backLinkText', 'Invalid regular expression.');
-  }
+  setStatus('backLinkText', fieldError(FIELDS.find(field => field.key === 'backLinkText')));
 }
 
 function syncUI() {
   $('.tab').each((_, tab) => $(tab).toggleClass('active', tab.dataset.section === activeSection));
   $('[data-section-panel]').each((_, panel) => $(panel).prop('hidden', panel.dataset.sectionPanel !== activeSection));
-  $('#fillGuestProfile').prop('disabled', !$fields.enableTestData.prop('checked'));
+  $('#fillGuestProfile').prop('disabled', fillInProgress || !$fields.enableTestData.prop('checked'));
   FIELDS.forEach(field => {
     if (field.dependsOn) $fields[field.key].prop('disabled', !$fields[field.dependsOn].prop('checked'));
   });
   refreshStatus();
 }
 
-function readForm() {
-  return Object.fromEntries(FIELDS.map(field => [field.key, field.type === 'toggle' ? $fields[field.key].prop('checked') : $fields[field.key].val()]));
+const readField = field => field.type === 'toggle' ? $fields[field.key].prop('checked') : $fields[field.key].val();
+
+function fieldError(field) {
+  if (!field || field.key !== 'backLinkText') return '';
+  if (syncBytes(readField(field)) > 8000) return 'Too large to sync.';
+  try {
+    new RegExp($fields.backLinkText.val() || DEFAULTS.backLinkText, 'i');
+    return '';
+  } catch (error) {
+    return 'Invalid regular expression.';
+  }
 }
 
-function saveSettings() {
-  chrome.storage.sync.set(readForm(), () => {
-    if (chrome.runtime.lastError) return console.error('[CA Enhanced] Save failed:', chrome.runtime.lastError);
-    syncUI();
-    clearTimeout(savedTimer);
-    $saved.addClass('show');
-    savedTimer = setTimeout(() => $saved.removeClass('show'), 1000);
+function saveBatch(values) {
+  return new Promise(resolve => {
+  chrome.storage.sync.set(values, () => {
+    if (chrome.runtime.lastError) {
+      console.error('[CA Enhanced] Save failed:', chrome.runtime.lastError);
+      if (Object.keys(pendingSaves).length) saveTimer = setTimeout(flushSaves, 1000);
+      return resolve(false);
+    }
+      resolve(true);
+    });
   });
+}
+
+function flushSaves() {
+  clearTimeout(saveTimer);
+  const next = pendingSaves;
+  pendingSaves = {};
+  if (!Object.keys(next).length) return activeSave;
+  activeSave = activeSave.then(async previousOk => {
+    const ok = await saveBatch(next);
+    if (!ok) {
+      pendingSaves = { ...next, ...pendingSaves };
+      showSaved('Failed', 'failed', 0);
+      return false;
+    }
+    showSaved(hasPendingSaves() ? 'Pending' : 'Saved', hasPendingSaves() ? 'pending' : '', hasPendingSaves() ? 0 : 1000);
+    return ok;
+  });
+  return activeSave;
+}
+
+function saveField(field, immediate) {
+  const error = fieldError(field);
+  if (!error && syncBytes(readField(field)) > 8000) return showSaved('Too large', 'failed', 0);
+  if (error) {
+    delete pendingSaves[field.key];
+    if (!hasPendingSaves()) clearTimeout(saveTimer);
+    return showSaved('Not saved', 'failed');
+  }
+  if (immediate) saveNow(field);
+  else {
+    pendingSaves[field.key] = readField(field);
+    showSaved('Pending', 'pending', 0);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSaves, 250);
+  }
+}
+
+function saveNow(field) {
+  activeSave = activeSave.then(async () => {
+    const ok = await saveBatch({ [field.key]: readField(field) });
+    showSaved(ok ? (hasPendingSaves() ? 'Pending' : 'Saved') : 'Failed', ok && hasPendingSaves() ? 'pending' : ok ? '' : 'failed', ok && hasPendingSaves() ? 0 : ok ? 1000 : 0);
+    return ok;
+  });
+}
+
+function showSaved(text = 'Saved', state = '', timeout = 1000) {
+  $saved.text(text).removeClass('pending failed').toggleClass('pending', state === 'pending').toggleClass('failed', state === 'failed').addClass('show');
+  clearTimeout(savedTimer);
+  if (timeout) savedTimer = setTimeout(() => $saved.removeClass('show pending failed').text('Saved'), timeout);
 }
 
 function bindField(field) {
@@ -123,22 +210,29 @@ function bindField(field) {
   $fields[field.key].on(isImmediate ? 'change' : 'input', () => {
     if (field.type === 'toggle') syncUI();
     else refreshStatus();
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveSettings, isImmediate ? 0 : 180);
+    saveField(field, isImmediate);
   });
+  if (!isImmediate) $fields[field.key].on('blur change', () => flushSaves());
 }
 
-function loadSettings() {
+function loadSettings(done) {
   chrome.storage.sync.get(DEFAULTS, items => {
-    if (chrome.runtime.lastError) return console.error('[CA Enhanced] Failed to load settings:', chrome.runtime.lastError);
+    if (chrome.runtime.lastError) {
+      console.error('[CA Enhanced] Failed to load settings:', chrome.runtime.lastError);
+      items = DEFAULTS;
+    }
     FIELDS.forEach(field => {
       if (field.type === 'toggle') $fields[field.key].prop('checked', !!items[field.key]);
       else $fields[field.key].val(items[field.key] == null ? field.defaultValue || '' : items[field.key]);
     });
     syncUI();
+    if (done) done();
   });
 }
 
 mountForm();
-FIELDS.forEach(bindField);
-loadSettings();
+loadSettings(() => FIELDS.forEach(bindField));
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSaves();
+});
+window.addEventListener('pagehide', () => { flushSaves(); });
