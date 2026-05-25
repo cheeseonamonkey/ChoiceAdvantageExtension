@@ -238,6 +238,16 @@
     }));
   }
 
+  function initF12Block() {
+    window.addEventListener('keydown', event => safe('F12 block failed', () => {
+      if (!state.settings.enableF12Block) return;
+      const key = String(event.key || '').toUpperCase();
+      const blocked = key === 'F12' || (event.ctrlKey && event.shiftKey && ['I', 'J', 'C'].includes(key)) || (event.metaKey && event.altKey && key === 'I');
+      if (!blocked) return;
+      event.preventDefault();
+    }), true);
+  }
+
   function findEditableField(target) {
     const field = target && target.closest ? target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]') : null;
     if (!field || field.disabled || field.readOnly || field.type === 'password') return null;
@@ -354,6 +364,7 @@
       applySettings(items || DEFAULTS);
       initDNRUI();
       initEscapeKey();
+      initF12Block();
       initTestData();
       initStorageSync();
     };
