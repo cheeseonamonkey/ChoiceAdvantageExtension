@@ -9,6 +9,7 @@ zip -r "$out" \
   background.js \
   content.js \
   settings.js \
+  navigation-polyfill.js \
   jquery.min.js \
   options.html \
   options.js \

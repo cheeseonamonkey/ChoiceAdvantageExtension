@@ -31,8 +31,8 @@ jobs:
         run: |
           version="$(node -p "require('./manifest.json').version")"
           echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
-          echo "ZIP_ARTIFACT=choiceadvantage-enhanced-v$version-chromium.zip" >> "$GITHUB_ENV"
-          echo "CRX_ARTIFACT=choiceadvantage-enhanced-v$version-chromium.crx" >> "$GITHUB_ENV"
+          echo "ZIP_ARTIFACT=dist/choiceadvantage-enhanced-v$version-chromium.zip" >> "$GITHUB_ENV"
+          echo "CRX_ARTIFACT=dist/choiceadvantage-enhanced-v$version-chromium.crx" >> "$GITHUB_ENV"
       - name: Build release zip
         run: ./scripts/package-extension.sh "$ZIP_ARTIFACT"
       - name: Load CRX signing key
@@ -52,6 +52,6 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           target_commitish: ${{ github.sha }}
           files: |
-            ${{ env.ZIP_ARTIFACT }}
-            ${{ env.CRX_ARTIFACT }}
+            dist/*.zip
+            dist/*.crx
           make_latest: true

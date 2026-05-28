@@ -26,4 +26,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: choiceadvantage-enhanced-dist-chromium
-          path: ${{ env.ARTIFACT }}
+          path: dist/*.zip
