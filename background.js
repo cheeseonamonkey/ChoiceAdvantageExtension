@@ -29,6 +29,26 @@ function clearLegacyNetworkRules() {
   });
 }
 
+function heartbeat() {
+  chrome.storage.sync.get({ enableKeepAlive: DEFAULTS.enableKeepAlive }, settings => {
+    if (settings.enableKeepAlive) {
+      // Ping a standard ChoiceAdvantage endpoint to refresh the session
+      fetch('https://www.choiceadvantage.com/choiceadvantage/main.do', { method: 'HEAD', cache: 'no-store' })
+        .catch(() => { /* ignore - likely offline or blocked */ });
+    }
+  });
+}
+
+function syncAlarms() {
+  chrome.storage.sync.get({ enableKeepAlive: DEFAULTS.enableKeepAlive }, settings => {
+    if (settings.enableKeepAlive) {
+      chrome.alarms.create('heartbeat', { periodInMinutes: 4 });
+    } else {
+      chrome.alarms.clear('heartbeat');
+    }
+  });
+}
+
 function parseAddress(line) {
   const [street, city, state, zip, phone] = line.split('|').map(part => part.trim());
   return street && city && state && zip && phone ? { street, city, state, zip, phone } : null;
@@ -97,14 +117,22 @@ function sendProfile(tab, frameId, done = () => {}) {
 
 chrome.runtime.onInstalled.addListener(() => {
   syncMenus();
+  syncAlarms();
   clearLegacyNetworkRules();
 });
 chrome.runtime.onStartup.addListener(() => {
   syncMenus();
+  syncAlarms();
   clearLegacyNetworkRules();
 });
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'heartbeat') heartbeat();
+});
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes.enableTestData) buildMenus(changes.enableTestData.newValue);
+  if (area === 'sync') {
+    if (changes.enableTestData) buildMenus(changes.enableTestData.newValue);
+    if (changes.enableKeepAlive) syncAlarms();
+  }
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

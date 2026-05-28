@@ -190,7 +190,16 @@
     });
     window.addEventListener('scroll', () => state.activeLink && positionTooltip(state.activeLink), true);
     window.addEventListener('resize', () => state.activeLink && positionTooltip(state.activeLink));
-    new MutationObserver(scheduleDNRRefresh).observe(document.body || document.documentElement, { childList: true, subtree: true });
+    new MutationObserver(mutations => {
+      scheduleDNRRefresh();
+      mutations.forEach(m => {
+        if (m.addedNodes.length) {
+          m.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) autoFocusDialog(node);
+          });
+        }
+      });
+    }).observe(document.body || document.documentElement, { childList: true, subtree: true });
   }
 
   function isEditableTarget(target) {
@@ -239,6 +248,24 @@
       if (!blocked) return;
       event.preventDefault();
     }), true);
+  }
+
+  function autoFocusDialog(root = document) {
+    if (!state.settings.enableAutoFocus) return;
+    // ChoiceAdvantage uses specific classes for its modals/dialogs (CHI_Dialog, etc)
+    const dialog = root.querySelector('.CHI_Dialog, .ui-dialog, [role="dialog"]');
+    if (!dialog || !isVisible(dialog)) return;
+    
+    // Find the primary action button (OK, Yes, Save, Confirm)
+    const buttons = Array.from(dialog.querySelectorAll('button, input[type="button"], input[type="submit"]'));
+    const primary = buttons.find(btn => {
+      const text = (btn.value || btn.textContent || '').trim().toUpperCase();
+      return ['OK', 'YES', 'SAVE', 'CONFIRM', 'CONTINUE'].includes(text);
+    });
+
+    if (primary && isVisible(primary)) {
+      primary.focus();
+    }
   }
 
   function findEditableField(target) {
