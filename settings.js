@@ -2,7 +2,8 @@
   'use strict';
 
   const SECTIONS = [
-    { key: 'core', title: 'Core', note: 'DNR, Escape back, and explicit test data.', open: true }
+    { key: 'core', title: 'Core', note: 'DNR, Escape back, and explicit test data.', open: true },
+    { key: 'macroRecorder', title: 'Macro Recorder', note: 'Record, inspect, export, and replay active-page UI steps.' }
   ];
   const FIELDS = [
     { key: 'enableDNR', section: 'core', type: 'toggle', label: 'DNR highlighting', description: 'Underline matching names and show the hover reminder.', title: 'Underline and mark flagged guest names in tables.', defaultValue: true },
